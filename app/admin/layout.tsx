@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
+import AdminLayoutClient from "@/components/admin/AdminLayoutClient";
 
 export const metadata: Metadata = {
   title: "Panel de Administracion -- Colombia Sexys",
@@ -14,8 +15,9 @@ export default function AdminLayout({
 }) {
   return (
     <>
-      {children}
+      <AdminLayoutClient>{children}</AdminLayoutClient>
       <Toaster theme="dark" position="bottom-right" richColors />
     </>
   );
 }
+
