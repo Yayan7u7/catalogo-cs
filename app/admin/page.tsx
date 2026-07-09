@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import LoginForm from "@/components/admin/LoginForm";
+import { checkSessionAction, logoutAction } from "@/app/actions/auth";
 
 const AdminDashboard = dynamic(
   () => import("@/components/admin/AdminDashboard"),
@@ -29,12 +30,8 @@ export default function AdminPage() {
   // Verificamos si existe sesion via API (la cual lee la cookie HttpOnly)
   const checkSession = async () => {
     try {
-      const res = await fetch("/api/auth/session");
-      if (res.ok) {
-        setIsAuthenticated(true);
-      } else {
-        setIsAuthenticated(false);
-      }
+      const isAuth = await checkSessionAction();
+      setIsAuthenticated(isAuth);
     } catch (e) {
       setIsAuthenticated(false);
     } finally {
@@ -48,7 +45,7 @@ export default function AdminPage() {
 
   const handleSignOut = async () => {
     try {
-      await fetch("/api/auth", { method: "DELETE" });
+      await logoutAction();
       setIsAuthenticated(false);
     } catch (e) {
       console.error(e);

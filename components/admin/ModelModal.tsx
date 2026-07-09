@@ -1,10 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import imageCompression from "browser-image-compression";
-import type { Modelo, ModeloPayload } from "@/lib/api";
+import type { Modelo, ModeloPayload } from "@/types";
+
+import { uploadImageAction, deleteImageAction } from "@/app/actions/upload";
+import { getJefesAction, getApartmentsAction } from "@/app/actions/modelos";
+import InputField from "../ui/InputField";
+import TextareaField from "../ui/TextareaField";
+import SelectField from "../ui/SelectField";
 
 const inputClass =
   "w-full bg-black border border-zinc-800 text-white text-sm font-medium px-4 py-3 transition-all duration-200 focus:border-[#C5A55A] placeholder:text-zinc-600 focus:outline-none";
@@ -22,10 +28,30 @@ export default function ModelModal({
   onSave,
   showNotification,
 }: ModelModalProps) {
+  const [jefes, setJefes] = useState<{ id: string; email: string }[]>([]);
+  const [apartments, setApartments] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [jefesList, apartmentsList] = await Promise.all([
+          getJefesAction(),
+          getApartmentsAction(),
+        ]);
+        setJefes(jefesList);
+        setApartments(apartmentsList);
+      } catch (err) {
+        console.error("Error al cargar jefes/apartamentos:", err);
+      }
+    }
+    loadData();
+  }, []);
+
   const [form, setForm] = useState<ModeloPayload>(
     modelo
       ? {
-          nombre: modelo.nombre,
+          nombreReal: modelo.nombreReal || "",
+          nombreArtistico: modelo.nombreArtistico || "",
           descripcion: modelo.descripcion,
           fotoPrincipal: modelo.fotoPrincipal,
           fotos: [...modelo.fotos],
@@ -33,9 +59,14 @@ export default function ModelModal({
           contactLink: modelo.contactLink,
           contactLabel: modelo.contactLabel,
           disponible: modelo.disponible,
+          precioBaseHora: modelo.precioBaseHora,
+          tipo: modelo.tipo,
+          jefeId: modelo.jefeId,
+          apartmentId: modelo.apartmentId,
         }
       : {
-          nombre: "",
+          nombreReal: "",
+          nombreArtistico: "",
           descripcion: "",
           fotoPrincipal: "",
           fotos: [],
@@ -43,6 +74,10 @@ export default function ModelModal({
           contactLink: "",
           contactLabel: "Contacto",
           disponible: true,
+          precioBaseHora: 100,
+          tipo: "independiente",
+          jefeId: "",
+          apartmentId: "",
         }
   );
 
@@ -58,33 +93,17 @@ export default function ModelModal({
     });
   };
 
-  // Helper para subir a R2 a traves de la API route
+  // Helper para subir a R2 usando Server Action
   const uploadToR2 = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-
-    const res = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.error || "Error al subir la imagen");
-    }
-
-    const data = await res.json();
-    return data.url;
+    return await uploadImageAction(formData);
   };
 
-  // Helper para eliminar de R2 a traves de la API route
+  // Helper para eliminar de R2 usando Server Action
   const deleteFromR2 = async (url: string) => {
     try {
-      await fetch("/api/delete-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
+      await deleteImageAction(url);
     } catch (error) {
       console.error("Error al eliminar imagen antigua:", error);
     }
@@ -150,8 +169,8 @@ export default function ModelModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.nombre.trim()) {
-      showNotification("El nombre es obligatorio.", "error");
+    if (!form.nombreReal.trim() || !form.nombreArtistico.trim()) {
+      showNotification("El nombre real y el artistico son obligatorios.", "error");
       return;
     }
     if (!form.fotoPrincipal) {
@@ -210,70 +229,89 @@ export default function ModelModal({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Columna Izquierda: Datos */}
             <div className="space-y-5">
-              <div>
-                <label className="block text-[10px] font-bold tracking-widest text-[#C5A55A] uppercase mb-2">
-                  Nombre
-                </label>
-                <input
+              <div className="grid grid-cols-2 gap-4">
+                <InputField
+                  label="Nombre Real"
                   type="text"
-                  value={form.nombre}
-                  onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                  value={form.nombreReal}
+                  onChange={(e) => setForm({ ...form, nombreReal: e.target.value })}
+                  placeholder="Ej: Sofia Gomez Velez"
+                  required
+                />
+                <InputField
+                  label="Nombre Artistico"
+                  type="text"
+                  value={form.nombreArtistico}
+                  onChange={(e) => setForm({ ...form, nombreArtistico: e.target.value })}
                   placeholder="Ej: Sofia Velez"
-                  className={inputClass}
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold tracking-widest text-[#C5A55A] uppercase mb-2">
-                  Descripcion
-                </label>
-                <textarea
-                  value={form.descripcion}
-                  onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
-                  placeholder="Breve bio o descripcion del perfil..."
-                  rows={3}
-                  className={`${inputClass} resize-none`}
+              <TextareaField
+                label="Descripcion"
+                value={form.descripcion}
+                onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+                placeholder="Breve bio o descripcion del perfil..."
+                rows={3}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <InputField
+                  label="Tarifa por Hora (USD)"
+                  type="number"
+                  value={form.precioBaseHora}
+                  onChange={(e) => setForm({ ...form, precioBaseHora: parseFloat(e.target.value) || 0 })}
+                  placeholder="Ej: 100"
+                  required
+                  min={0}
+                />
+                <SelectField
+                  label="Tipo de Perfil"
+                  value={form.tipo}
+                  onChange={(e) => setForm({ ...form, tipo: e.target.value as "independiente" | "agencia" })}
+                  options={[
+                    { value: "independiente", label: "Independiente" },
+                    { value: "agencia", label: "Agencia" },
+                  ]}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold tracking-widest text-[#C5A55A] uppercase mb-2">
-                    Link de Contacto
-                  </label>
-                  <input
-                    type="url"
-                    value={form.contactLink}
-                    onChange={(e) => setForm({ ...form, contactLink: e.target.value })}
-                    placeholder="https://wa.me/..."
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold tracking-widest text-[#C5A55A] uppercase mb-2">
-                    Etiqueta Boton
-                  </label>
-                  <input
-                    type="text"
-                    value={form.contactLabel}
-                    onChange={(e) => setForm({ ...form, contactLabel: e.target.value })}
-                    placeholder="WhatsApp"
-                    className={inputClass}
-                  />
-                </div>
+                <SelectField
+                  label="Jefe Asignado"
+                  value={form.jefeId || ""}
+                  onChange={(e) => setForm({ ...form, jefeId: e.target.value || null })}
+                  options={[
+                    { value: "", label: "Ninguno" },
+                    ...jefes.map((j) => ({ value: j.id, label: j.email })),
+                  ]}
+                />
+                <SelectField
+                  label="Departamento/Apartamento"
+                  value={form.apartmentId || ""}
+                  onChange={(e) => setForm({ ...form, apartmentId: e.target.value || null })}
+                  options={[
+                    { value: "", label: "Ninguno" },
+                    ...apartments.map((a) => ({ value: a.id, label: a.name })),
+                  ]}
+                />
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold tracking-widest text-[#C5A55A] uppercase mb-2">
-                  Link de X (Twitter)
-                </label>
-                <input
+              <div className="grid grid-cols-2 gap-4">
+                <InputField
+                  label="Etiqueta Boton Contacto"
+                  type="text"
+                  value={form.contactLabel}
+                  onChange={(e) => setForm({ ...form, contactLabel: e.target.value })}
+                  placeholder="Contratar"
+                />
+                <InputField
+                  label="Link de X (Twitter)"
                   type="url"
                   value={form.linkX}
                   onChange={(e) => setForm({ ...form, linkX: e.target.value })}
                   placeholder="https://x.com/..."
-                  className={inputClass}
                 />
               </div>
 

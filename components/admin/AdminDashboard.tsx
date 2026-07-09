@@ -4,76 +4,10 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import {
-  getModelos,
-  createModelo,
-  updateModelo,
-  deleteModelo,
-  type Modelo,
-  type ModeloPayload,
-} from "@/lib/api";
+import { getModelos, deleteModelo, createModelo, updateModelo, type ModeloPayload } from "@/lib/api";
+import type { Modelo } from "@/types";
 import ModelModal from "./ModelModal";
-
-// ==============================================================
-// ConfirmDialog — dialogo de confirmacion nativo
-// ==============================================================
-
-interface ConfirmDialogProps {
-  title: string;
-  description: string;
-  labelConfirm?: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
-
-function ConfirmDialog({
-  title,
-  description,
-  labelConfirm = "Eliminar",
-  onConfirm,
-  onCancel,
-}: ConfirmDialogProps) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18 }}
-      className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-      onClick={(e) => e.target === e.currentTarget && onCancel()}
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.97, y: 8 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.97, y: 8 }}
-        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-sm bg-black border border-zinc-800 shadow-2xl"
-      >
-        <div className="px-8 pt-8 pb-6 border-b border-zinc-800/60">
-          <p className="text-[10px] font-bold tracking-[0.2em] text-red-500 uppercase mb-3">Accion irreversible</p>
-          <h3 className="font-heading text-xl font-semibold text-white tracking-tight leading-snug">{title}</h3>
-          <p className="text-xs text-zinc-500 font-light mt-2 leading-relaxed">{description}</p>
-        </div>
-        <div className="flex">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 py-4 text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-500 hover:text-white border-r border-zinc-800 transition-colors duration-200"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="flex-1 py-4 text-[10px] font-bold tracking-[0.2em] uppercase text-red-500 hover:text-red-400 hover:bg-red-950/20 transition-colors duration-200"
-          >
-            {labelConfirm}
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
+import ConfirmDialog from "../ui/ConfirmDialog";
 
 // ==============================================================
 // AdminDashboard — componente principal con Sidebar
@@ -323,7 +257,7 @@ export default function AdminDashboard({ onSignOut, userEmail }: AdminDashboardP
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filtered.map((modelo) => (
+              {filtered.map((modelo, index) => (
                 <div
                   key={modelo._id}
                   className="bg-zinc-900/30 border border-zinc-800 group hover:border-zinc-700 transition-colors flex flex-col"
@@ -353,7 +287,7 @@ export default function AdminDashboard({ onSignOut, userEmail }: AdminDashboardP
                     )}
                     <div className="absolute top-2 right-2 bg-black/80 px-2 py-1 border border-[#C5A55A]/30">
                       <span className="text-[9px] text-[#C5A55A] font-bold">
-                        #{modelo.orden}
+                        #{index + 1}
                       </span>
                     </div>
                   </div>

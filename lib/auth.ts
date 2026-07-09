@@ -7,8 +7,8 @@ const encodedSecret = new TextEncoder().encode(JWT_SECRET);
 
 export const COOKIE_NAME = "cs_admin_session";
 
-export async function createSessionCookie(email: string) {
-  const token = await new SignJWT({ email })
+export async function createSessionCookie(accessToken: string) {
+  const token = await new SignJWT({ accessToken })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d") // 1 semana
@@ -41,6 +41,11 @@ export async function getSessionPayload() {
   } catch (err) {
     return null;
   }
+}
+
+export async function getAccessToken(): Promise<string | undefined> {
+  const payload = await getSessionPayload();
+  return payload?.accessToken as string | undefined;
 }
 
 /**

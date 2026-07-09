@@ -7,7 +7,8 @@ import ModelGrid from "@/components/ModelGrid";
 import ModelProfile from "@/components/ModelProfile";
 import Footer from "@/components/Footer";
 import { AnimateIn } from "@/components/AnimateIn";
-import { getModelos, type Modelo } from "@/lib/api";
+import { getModelos } from "@/lib/api";
+import type { Modelo } from "@/types";
 
 export default function Home() {
   const catalogRef = useRef<HTMLElement | null>(null);
