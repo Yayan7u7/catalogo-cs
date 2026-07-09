@@ -96,6 +96,16 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
           >
             Modelos
           </Link>
+          <Link
+            href="/admin/jefes"
+            className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
+              isActive("/admin/jefes")
+                ? "text-black bg-[#C5A55A]"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
+            }`}
+          >
+            Jefes
+          </Link>
         </nav>
         <div className="p-4 border-t border-zinc-800">
           <p className="text-[10px] text-zinc-500 mb-3 px-2 truncate text-center">
@@ -145,6 +155,17 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
               }`}
             >
               Modelos
+            </Link>
+            <Link
+              href="/admin/jefes"
+              onClick={() => setMenuOpen(false)}
+              className={`px-4 py-3 text-left text-xs font-bold tracking-widest uppercase transition-colors duration-300 ${
+                isActive("/admin/jefes")
+                  ? "text-[#C5A55A] bg-zinc-900/50"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Jefes
             </Link>
             <div className="mt-2 pt-2 border-t border-zinc-800">
               <button

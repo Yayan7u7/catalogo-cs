@@ -24,6 +24,7 @@ function mapToModelo(emp: any): Modelo {
     tipo: emp.tipo || "independiente",
     jefeId: emp.jefeId || null,
     apartmentId: emp.apartmentId || null,
+    usuarioId: emp.usuarioId || null,
     createdAt: emp.createdAt,
   };
 }
@@ -174,7 +175,7 @@ export async function getJefesAction(): Promise<{ id: string; email: string }[]>
     const token = await getAccessToken();
     if (!token) throw new Error("No autorizado");
 
-    const res = await fetch(`${BACKEND_API_URL}/users`, {
+    const res = await fetch(`${BACKEND_API_URL}/users?rol=jefe`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -183,9 +184,7 @@ export async function getJefesAction(): Promise<{ id: string; email: string }[]>
 
     if (!res.ok) throw new Error("Error al obtener usuarios");
     const users = await res.json();
-    return users
-      .filter((u: any) => u.rol === "jefe")
-      .map((u: any) => ({ id: u.id, email: u.email }));
+    return users.map((u: any) => ({ id: u.id, email: u.email }));
   } catch (error) {
     console.error("getJefesAction error:", error);
     return [];

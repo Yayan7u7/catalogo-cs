@@ -11,6 +11,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 1. **CERO EMOJIS.** No usar emojis en ningun texto, componente, notificacion, comentario o mensaje de la aplicacion. Esto es absolutamente innegociable.
 2. **Profesionalismo total.** El tono de toda la aplicacion debe ser sofisticado, elegante y premium.
 3. **Idioma: Espanol.** Toda la interfaz de usuario esta en espanol.
+4. **Reutilización de componentes.** Utilizar componentes genéricos siempre que exista la oportunidad (ej. `InputField`, `SearchBar`, `CreateButton`) para evitar la redundancia de código y estilos.
 
 ## Tipografia
 

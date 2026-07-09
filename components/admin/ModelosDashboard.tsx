@@ -5,9 +5,12 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { getModelos, deleteModelo, createModelo, updateModelo, type ModeloPayload } from "@/lib/api";
+import { generateTelegramOtpAction } from "@/app/actions/jefes";
 import type { Modelo } from "@/types";
 import ModelModal from "./ModelModal";
 import ConfirmDialog from "../ui/ConfirmDialog";
+import SearchBar from "../ui/SearchBar";
+import CreateButton from "../ui/CreateButton";
 
 export default function ModelosDashboard() {
   const [modelos, setModelos] = useState<Modelo[]>([]);
@@ -17,6 +20,22 @@ export default function ModelosDashboard() {
   const [editingModelo, setEditingModelo] = useState<Modelo | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Modelo | null>(null);
+  const [otpCodes, setOtpCodes] = useState<Record<string, string>>({});
+
+  const handleGenerateOtp = async (usuarioId: string) => {
+    try {
+      const res = await generateTelegramOtpAction(usuarioId);
+      if (!res.success) {
+        throw new Error(res.error || "No se pudo generar el OTP");
+      }
+      if (res.code) {
+        setOtpCodes((prev) => ({ ...prev, [usuarioId]: res.code || "" }));
+        toast.success("OTP generado correctamente.");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Error al generar OTP");
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -113,38 +132,20 @@ export default function ModelosDashboard() {
             Gestiona los perfiles y fotos de las modelos
           </p>
         </div>
-        <button
+        <CreateButton
           onClick={() => {
             setEditingModelo(null);
             setShowModal(true);
           }}
-          className="bg-[#C5A55A] text-black font-bold text-[10px] tracking-[0.2em] uppercase px-6 py-3 transition-colors hover:bg-[#D4AF37]"
-        >
-          + Nueva Modelo
-        </button>
+          label="Nueva Modelo"
+        />
       </div>
 
-      <div className="relative mb-8 max-w-md">
-        <input
-          type="text"
-          placeholder="Buscar por nombre..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-transparent border-b border-zinc-700 text-white text-base py-3 pl-10 focus:border-[#C5A55A] focus:outline-none transition-colors placeholder:text-zinc-600"
-        />
-        <svg
-          className="absolute left-1 top-1/2 -translate-y-1/2 text-zinc-500"
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-      </div>
+      <SearchBar
+        placeholder="Buscar por nombre..."
+        value={searchQuery}
+        onChange={setSearchQuery}
+      />
 
       {loading ? (
         <div className="flex gap-2 py-24 justify-center">
@@ -201,9 +202,40 @@ export default function ModelosDashboard() {
               </div>
               
               <div className="p-4 flex-1 flex flex-col">
-                <h3 className="font-heading text-lg font-semibold text-white mb-3">
+                <h3 className="font-heading text-lg font-semibold text-white mb-2">
                   {modelo.nombre}
                 </h3>
+                {modelo.usuarioId && (
+                  <div className="mb-3">
+                    {otpCodes[modelo.usuarioId!] ? (
+                      <div className="flex items-center gap-2">
+                        <div className="inline-block bg-[#C5A55A]/10 text-[#C5A55A] border border-[#C5A55A]/30 px-3 py-1 rounded text-xs font-mono font-bold">
+                          OTP: {otpCodes[modelo.usuarioId!]}
+                        </div>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(`/vincular ${otpCodes[modelo.usuarioId!]}`);
+                            toast.success("Copiado al portapapeles");
+                          }}
+                          title="Copiar comando de vinculacion"
+                          className="text-[#C5A55A] hover:text-[#E8D5A3] transition-colors p-1"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleGenerateOtp(modelo.usuarioId!)}
+                        className="text-[10px] font-bold tracking-widest text-[#C5A55A] hover:text-[#E8D5A3] transition-colors uppercase"
+                      >
+                        Generar OTP
+                      </button>
+                    )}
+                  </div>
+                )}
                 <div className="mt-auto flex gap-3 pt-3 border-t border-zinc-800/60">
                   <button
                     onClick={() => {

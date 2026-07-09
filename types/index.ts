@@ -14,6 +14,7 @@ export interface Modelo {
   tipo: "independiente" | "agencia";
   jefeId?: string | null;
   apartmentId?: string | null;
+  usuarioId?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
