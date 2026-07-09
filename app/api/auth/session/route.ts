@@ -1,0 +1,12 @@
+import { NextResponse } from "next/server";
+import { getSessionPayload } from "@/lib/auth";
+
+export async function GET() {
+  const session = await getSessionPayload();
+
+  if (!session) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  return NextResponse.json({ user: session });
+}
