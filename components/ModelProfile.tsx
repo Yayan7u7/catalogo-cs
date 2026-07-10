@@ -159,6 +159,26 @@ export default function ModelProfile({ modelo, onClose }: ModelProfileProps) {
                 {modelo.descripcion}
               </p>
             )}
+
+            {/* Servicios Extra */}
+            {modelo.extras && modelo.extras.length > 0 && (
+              <div className="mt-6 mb-8">
+                <h3 className="font-heading text-lg font-semibold text-[#C5A55A] tracking-wider mb-3">
+                  Servicios Extra
+                </h3>
+                <div className="space-y-3 border-t border-zinc-900 pt-3">
+                  {modelo.extras.map((extra) => (
+                    <div
+                      key={extra.id || extra.nombre}
+                      className="flex items-center justify-between text-xs sm:text-sm text-zinc-300 font-light"
+                    >
+                      <span className="font-sans">{extra.nombre}</span>
+                      <span className="font-mono text-[#E8D5A3] font-medium">${extra.precio}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Links */}

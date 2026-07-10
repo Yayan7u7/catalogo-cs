@@ -1,3 +1,10 @@
+export interface ServiceExtra {
+  id?: string;
+  nombre: string;
+  precio: number;
+  activo?: boolean;
+}
+
 export interface Modelo {
   _id: string;
   nombre: string; // Mapea a nombreArtistico por compatibilidad con vistas publicas
@@ -17,6 +24,7 @@ export interface Modelo {
   usuarioId?: string | null;
   createdAt?: string;
   updatedAt?: string;
+  extras?: ServiceExtra[];
 }
 
 export interface ModeloPayload {
@@ -33,4 +41,5 @@ export interface ModeloPayload {
   tipo: "independiente" | "agencia";
   jefeId?: string | null;
   apartmentId?: string | null;
+  extras?: ServiceExtra[];
 }

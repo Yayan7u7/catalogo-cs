@@ -26,6 +26,15 @@ function mapToModelo(emp: any): Modelo {
     apartmentId: emp.apartmentId || null,
     usuarioId: emp.usuarioId || null,
     createdAt: emp.createdAt,
+    extras: emp.extrasCatalogos
+      ? emp.extrasCatalogos
+          .filter((ext: any) => ext.activo !== false)
+          .map((ext: any) => ({
+            id: ext.id,
+            nombre: ext.nombre,
+            precio: ext.precio ? parseFloat(ext.precio) : 0,
+          }))
+      : [],
   };
 }
 
@@ -92,6 +101,7 @@ export async function createModeloAction(payload: ModeloPayload): Promise<Modelo
     linkX: payload.linkX || null,
     contactLabel: payload.contactLabel || null,
     fotosExtra: payload.fotos,
+    extras: payload.extras || [],
   };
 
   const res = await fetch(`${BACKEND_API_URL}/employees`, {
@@ -131,6 +141,7 @@ export async function updateModeloAction(id: string, payload: ModeloPayload): Pr
     linkX: payload.linkX || null,
     contactLabel: payload.contactLabel || null,
     fotosExtra: payload.fotos,
+    extras: payload.extras || [],
   };
 
   const res = await fetch(`${BACKEND_API_URL}/employees/${id}`, {

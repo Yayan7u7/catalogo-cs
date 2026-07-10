@@ -30,6 +30,8 @@ export default function ModelModal({
 }: ModelModalProps) {
   const [jefes, setJefes] = useState<{ id: string; email: string }[]>([]);
   const [apartments, setApartments] = useState<{ id: string; name: string }[]>([]);
+  const [newExtraNombre, setNewExtraNombre] = useState("");
+  const [newExtraPrecio, setNewExtraPrecio] = useState("");
 
   useEffect(() => {
     async function loadData() {
@@ -63,6 +65,7 @@ export default function ModelModal({
           tipo: modelo.tipo,
           jefeId: modelo.jefeId,
           apartmentId: modelo.apartmentId,
+          extras: modelo.extras ? [...modelo.extras] : [],
         }
       : {
           nombreReal: "",
@@ -78,6 +81,7 @@ export default function ModelModal({
           tipo: "independiente",
           jefeId: "",
           apartmentId: "",
+          extras: [],
         }
   );
 
@@ -164,6 +168,41 @@ export default function ModelModal({
       const newFotos = [...prev.fotos];
       newFotos.splice(index, 1);
       return { ...prev, fotos: newFotos };
+    });
+  };
+  const addExtra = () => {
+    if (!newExtraNombre.trim()) {
+      showNotification("El nombre del servicio extra no puede estar vacío.", "error");
+      return;
+    }
+    const precioNum = parseFloat(newExtraPrecio);
+    if (isNaN(precioNum) || precioNum < 0) {
+      showNotification("El precio debe ser un número válido mayor o igual a 0.", "error");
+      return;
+    }
+    
+    // Validar duplicados por nombre
+    const duplicado = form.extras?.some(
+      (e) => e.nombre.toLowerCase().trim() === newExtraNombre.toLowerCase().trim()
+    );
+    if (duplicado) {
+      showNotification("Ya existe un servicio extra con ese nombre.", "error");
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      extras: [...(prev.extras || []), { nombre: newExtraNombre.trim(), precio: precioNum }],
+    }));
+    setNewExtraNombre("");
+    setNewExtraPrecio("");
+  };
+
+  const removeExtra = (index: number) => {
+    setForm((prev) => {
+      const newExtras = [...(prev.extras || [])];
+      newExtras.splice(index, 1);
+      return { ...prev, extras: newExtras };
     });
   };
 
@@ -258,7 +297,7 @@ export default function ModelModal({
 
               <div className="grid grid-cols-2 gap-4">
                 <InputField
-                  label="Tarifa por Hora (USD)"
+                  label="Tarifa por Hora (MXN)"
                   type="number"
                   value={form.precioBaseHora}
                   onChange={(e) => setForm({ ...form, precioBaseHora: parseFloat(e.target.value) || 0 })}
@@ -337,6 +376,79 @@ export default function ModelModal({
                     {form.disponible ? "Visible en catalogo" : "Oculta"}
                   </span>
                 </div>
+              </div>
+
+              {/* Servicios Extra */}
+              <div className="border-t border-zinc-800 pt-5 space-y-4">
+                <label className="block text-[10px] font-bold tracking-widest text-[#C5A55A] uppercase">
+                  Servicios Extra
+                </label>
+                
+                {/* Inputs para agregar nuevo */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                  <div className="sm:col-span-2 space-y-1">
+                    <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+                      Nombre del Servicio
+                    </span>
+                    <input
+                      type="text"
+                      value={newExtraNombre}
+                      onChange={(e) => setNewExtraNombre(e.target.value)}
+                      placeholder="Ej: Masaje Terapeutico"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+                      Precio (MXN)
+                    </span>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={newExtraPrecio}
+                        onChange={(e) => setNewExtraPrecio(e.target.value)}
+                        placeholder="Ej: 50"
+                        min="0"
+                        className={inputClass}
+                      />
+                      <button
+                        type="button"
+                        onClick={addExtra}
+                        className="bg-zinc-900 border border-[#C5A55A] hover:bg-[#C5A55A] hover:text-black text-white font-bold text-xs uppercase px-4 py-3 transition-all duration-300 flex-shrink-0"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lista de extras agregados */}
+                {form.extras && form.extras.length > 0 ? (
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {form.extras.map((extra, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between bg-zinc-950 border border-zinc-900 px-4 py-3 text-xs"
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className="font-semibold text-white">{extra.nombre}</span>
+                          <span className="text-zinc-500 font-mono">${extra.precio}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeExtra(idx)}
+                          className="text-zinc-500 hover:text-red-500 font-semibold uppercase tracking-wider transition-colors"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-600 font-light italic">
+                    No se han configurado servicios extra.
+                  </p>
+                )}
               </div>
             </div>
 
