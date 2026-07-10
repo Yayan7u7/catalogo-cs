@@ -106,6 +106,16 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
           >
             Jefes
           </Link>
+          <Link
+            href="/admin/choferes"
+            className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
+              isActive("/admin/choferes")
+                ? "text-black bg-[#C5A55A]"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
+            }`}
+          >
+            Choferes
+          </Link>
         </nav>
         <div className="p-4 border-t border-zinc-800">
           <p className="text-[10px] text-zinc-500 mb-3 px-2 truncate text-center">
@@ -166,6 +176,17 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
               }`}
             >
               Jefes
+            </Link>
+            <Link
+              href="/admin/choferes"
+              onClick={() => setMenuOpen(false)}
+              className={`px-4 py-3 text-left text-xs font-bold tracking-widest uppercase transition-colors duration-300 ${
+                isActive("/admin/choferes")
+                  ? "text-[#C5A55A] bg-zinc-900/50"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Choferes
             </Link>
             <div className="mt-2 pt-2 border-t border-zinc-800">
               <button
