@@ -1,6 +1,6 @@
 "use server";
 
-import { getAccessToken } from "@/lib/auth";
+import { getAccessToken, clearSessionCookie } from "@/lib/auth";
 import type { Modelo, ModeloPayload } from "@/types";
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL || "http://localhost:4000";
@@ -57,7 +57,31 @@ export async function getModelosAction(onlyAvailable = false): Promise<Modelo[]>
     });
 
     if (!res.ok) {
-      throw new Error("No se pudo obtener las empleadas del backend");
+      if (res.status === 401 || res.status === 403) {
+        // El token no es válido o expiró, lo limpiamos
+        await clearSessionCookie();
+        
+        // Si falló la petición de admin (/employees), reintentamos con el catálogo público
+        if (url.endsWith("/employees")) {
+          console.warn("Token de administrador expirado o inválido. Limpiando sesión y reintentando con catálogo público.");
+          const publicRes = await fetch(`${BACKEND_API_URL}/catalog/employees`, {
+            method: "GET",
+            next: { revalidate: 0 },
+          });
+          if (publicRes.ok) {
+            const data = await publicRes.json();
+            let list = data.map(mapToModelo);
+            if (onlyAvailable) {
+              list = list.filter((m: Modelo) => m.disponible);
+            }
+            return list.sort(() => 0.5 - Math.random());
+          }
+        }
+      }
+
+      const errText = await res.text().catch(() => "No response body");
+      console.error(`Failed to fetch employees from backend. URL: ${url}, Status: ${res.status}, Body: ${errText}`);
+      throw new Error(`No se pudo obtener las empleadas del backend (Status: ${res.status})`);
     }
 
     const data = await res.json();
