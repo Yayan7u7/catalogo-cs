@@ -5,7 +5,17 @@ import { getAccessToken } from "@/lib/auth";
 const BACKEND_API_URL = process.env.BACKEND_API_URL || "http://localhost:4000";
 
 export async function getChoferesAction(): Promise<
-  { id: string; nombre: string; telefono: string; email: string; usuarioId: string }[]
+  {
+    id: string;
+    nombre: string;
+    telefono: string;
+    email: string;
+    usuarioId: string;
+    vehiculoMarca?: string;
+    vehiculoModelo?: string;
+    vehiculoColor?: string;
+    vehiculoPlaca?: string;
+  }[]
 > {
   try {
     const token = await getAccessToken();
@@ -26,6 +36,10 @@ export async function getChoferesAction(): Promise<
       telefono: d.telefono,
       email: d.usuario?.email || "",
       usuarioId: d.usuarioId,
+      vehiculoMarca: d.vehiculoMarca || "",
+      vehiculoModelo: d.vehiculoModelo || "",
+      vehiculoColor: d.vehiculoColor || "",
+      vehiculoPlaca: d.vehiculoPlaca || "",
     }));
   } catch (error) {
     console.error("getChoferesAction error:", error);
@@ -37,7 +51,11 @@ export async function createChoferAction(
   nombre: string,
   telefono: string,
   email: string,
-  password: string
+  password: string,
+  vehiculoMarca?: string,
+  vehiculoModelo?: string,
+  vehiculoColor?: string,
+  vehiculoPlaca?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const token = await getAccessToken();
@@ -49,7 +67,16 @@ export async function createChoferAction(
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ nombre, telefono, email, password }),
+      body: JSON.stringify({
+        nombre,
+        telefono,
+        email,
+        password,
+        vehiculoMarca: vehiculoMarca || null,
+        vehiculoModelo: vehiculoModelo || null,
+        vehiculoColor: vehiculoColor || null,
+        vehiculoPlaca: vehiculoPlaca || null,
+      }),
     });
 
     if (!res.ok) {
@@ -69,13 +96,25 @@ export async function updateChoferAction(
   nombre: string,
   telefono: string,
   email: string,
-  password?: string
+  password?: string,
+  vehiculoMarca?: string,
+  vehiculoModelo?: string,
+  vehiculoColor?: string,
+  vehiculoPlaca?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const token = await getAccessToken();
     if (!token) throw new Error("No autorizado");
 
-    const body: any = { nombre, telefono, email };
+    const body: any = {
+      nombre,
+      telefono,
+      email,
+      vehiculoMarca: vehiculoMarca || null,
+      vehiculoModelo: vehiculoModelo || null,
+      vehiculoColor: vehiculoColor || null,
+      vehiculoPlaca: vehiculoPlaca || null,
+    };
     if (password && password.trim() !== "") {
       body.password = password;
     }

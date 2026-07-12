@@ -21,18 +21,45 @@ interface Chofer {
   telefono: string;
   email: string;
   usuarioId: string;
+  vehiculoMarca?: string;
+  vehiculoModelo?: string;
+  vehiculoColor?: string;
+  vehiculoPlaca?: string;
 }
+
+const formatPhoneNumber = (value: string): string => {
+  let cleaned = value.replace(/[^\d+]/g, "");
+  if (cleaned && !cleaned.startsWith("+")) {
+    cleaned = "+" + cleaned;
+  }
+  if (cleaned.startsWith("+52")) {
+    const rest = cleaned.substring(3).replace(/\D/g, "");
+    if (rest.length === 0) return "+52";
+    if (rest.length <= 2) {
+      return `+52 ${rest}`;
+    }
+    if (rest.length <= 6) {
+      return `+52 ${rest.substring(0, 2)} ${rest.substring(2)}`;
+    }
+    return `+52 ${rest.substring(0, 2)} ${rest.substring(2, 6)} ${rest.substring(6, 10)}`;
+  }
+  return cleaned;
+};
 
 export default function ChoferesDashboard() {
   const [choferes, setChoferes] = useState<Chofer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const [showModal, setShowModal] = useState(false);
+    const [showModal, setShowModal] = useState(false);
   const [nombre, setNombre] = useState("");
-  const [telefono, setTelefono] = useState("");
+  const [telefono, setTelefono] = useState("+52");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [vehiculoMarca, setVehiculoMarca] = useState("");
+  const [vehiculoModelo, setVehiculoModelo] = useState("");
+  const [vehiculoColor, setVehiculoColor] = useState("");
+  const [vehiculoPlaca, setVehiculoPlaca] = useState("");
   const [editingChofer, setEditingChofer] = useState<Chofer | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -58,21 +85,35 @@ export default function ChoferesDashboard() {
   const handleSaveChofer = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    const telefonoLimpio = telefono.replace(/\s+/g, "");
     try {
       if (editingChofer) {
         const res = await updateChoferAction(
           editingChofer.id,
           nombre,
-          telefono,
+          telefonoLimpio,
           email,
-          password
+          password,
+          vehiculoMarca,
+          vehiculoModelo,
+          vehiculoColor,
+          vehiculoPlaca
         );
         if (!res.success) {
           throw new Error(res.error || "No se pudo actualizar el chofer");
         }
         toast.success("Chofer actualizado correctamente.");
       } else {
-        const res = await createChoferAction(nombre, telefono, email, password);
+        const res = await createChoferAction(
+          nombre,
+          telefonoLimpio,
+          email,
+          password,
+          vehiculoMarca,
+          vehiculoModelo,
+          vehiculoColor,
+          vehiculoPlaca
+        );
         if (!res.success) {
           throw new Error(res.error || "No se pudo crear el chofer");
         }
@@ -80,9 +121,13 @@ export default function ChoferesDashboard() {
       }
       setShowModal(false);
       setNombre("");
-      setTelefono("");
+      setTelefono("+52");
       setEmail("");
       setPassword("");
+      setVehiculoMarca("");
+      setVehiculoModelo("");
+      setVehiculoColor("");
+      setVehiculoPlaca("");
       setEditingChofer(null);
       await fetchChoferes();
     } catch (err: any) {
@@ -124,18 +169,26 @@ export default function ChoferesDashboard() {
   const openCreateModal = () => {
     setEditingChofer(null);
     setNombre("");
-    setTelefono("");
+    setTelefono("+52");
     setEmail("");
     setPassword("");
+    setVehiculoMarca("");
+    setVehiculoModelo("");
+    setVehiculoColor("");
+    setVehiculoPlaca("");
     setShowModal(true);
   };
 
   const openEditModal = (chofer: Chofer) => {
     setEditingChofer(chofer);
     setNombre(chofer.nombre);
-    setTelefono(chofer.telefono);
+    setTelefono(formatPhoneNumber(chofer.telefono));
     setEmail(chofer.email);
     setPassword("");
+    setVehiculoMarca(chofer.vehiculoMarca || "");
+    setVehiculoModelo(chofer.vehiculoModelo || "");
+    setVehiculoColor(chofer.vehiculoColor || "");
+    setVehiculoPlaca(chofer.vehiculoPlaca || "");
     setShowModal(true);
   };
 
@@ -169,7 +222,7 @@ export default function ChoferesDashboard() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-zinc-950 border border-zinc-800 p-8 rounded-2xl shadow-2xl relative"
+              className="w-full max-w-md bg-zinc-950 border border-zinc-800 p-8 rounded-2xl shadow-2xl relative max-h-[90vh] overflow-y-auto"
             >
               <button
                 onClick={() => setShowModal(false)}
@@ -200,8 +253,8 @@ export default function ChoferesDashboard() {
                     type="text"
                     required
                     value={telefono}
-                    onChange={(e) => setTelefono(e.target.value)}
-                    placeholder="+525512345678"
+                    onChange={(e) => setTelefono(formatPhoneNumber(e.target.value))}
+                    placeholder="+52 55 1234 5678"
                   />
                 </div>
 
@@ -223,10 +276,46 @@ export default function ChoferesDashboard() {
                   placeholder={editingChofer ? "Dejar en blanco para no cambiar" : "--------"}
                 />
 
+                <div className="border-t border-zinc-850 pt-5 space-y-4">
+                  <h4 className="text-[10px] font-bold tracking-widest text-[#C5A55A] uppercase">
+                    Datos del Vehiculo
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <InputField
+                      label="Marca"
+                      type="text"
+                      value={vehiculoMarca}
+                      onChange={(e) => setVehiculoMarca(e.target.value)}
+                      placeholder="Nissan"
+                    />
+                    <InputField
+                      label="Modelo"
+                      type="text"
+                      value={vehiculoModelo}
+                      onChange={(e) => setVehiculoModelo(e.target.value)}
+                      placeholder="Versa"
+                    />
+                    <InputField
+                      label="Color"
+                      type="text"
+                      value={vehiculoColor}
+                      onChange={(e) => setVehiculoColor(e.target.value)}
+                      placeholder="Blanco"
+                    />
+                    <InputField
+                      label="Placa"
+                      type="text"
+                      value={vehiculoPlaca}
+                      onChange={(e) => setVehiculoPlaca(e.target.value)}
+                      placeholder="ABC-123-D"
+                    />
+                  </div>
+                </div>
+
                 <button
                   type="submit"
                   disabled={saving}
-                  className="w-full bg-[#C5A55A] text-black font-black text-xs tracking-[0.2em] uppercase py-4 rounded-lg mt-4 hover:bg-[#D4AF37] transition-all duration-300 disabled:opacity-50 flex justify-center items-center"
+                  className="w-full bg-[#C5A55A] text-black font-black text-xs tracking-[0.2em] uppercase py-4 rounded-lg mt-6 hover:bg-[#D4AF37] transition-all duration-300 disabled:opacity-50 flex justify-center items-center cursor-pointer"
                 >
                   {saving ? "Guardando..." : editingChofer ? "Guardar Cambios" : "Crear Chofer"}
                 </button>
