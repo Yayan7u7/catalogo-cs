@@ -199,8 +199,8 @@ export default function ChoferesDashboard() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      {/* Dialogo de Confirmacion */}
+    <div className="w-full">
+      {/* Dialogo de confirmacion */}
       <AnimatePresence>
         {confirmDelete && (
           <ConfirmDialog
