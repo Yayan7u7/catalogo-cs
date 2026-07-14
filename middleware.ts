@@ -19,15 +19,14 @@ export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   // Redirigir/Reescribir las peticiones de /api/:path* hacia el backend de NestJS
-  if (pathname.startsWith("/api/")) {
+  if (
+    pathname.startsWith("/api/") &&
+    !pathname.startsWith("/api/assistant") &&
+    !pathname.startsWith("/api/auth")
+  ) {
     const backendUrl = process.env.BACKEND_API_URL || "http://localhost:4000";
-    
-    // Obtenemos el path después de /api
     const apiPath = pathname.replace(/^\/api/, "");
-    
-    // Creamos la nueva URL apuntando al backend
     const targetUrl = new URL(`${apiPath}${search}`, backendUrl);
-    
     return NextResponse.rewrite(targetUrl);
   }
 
