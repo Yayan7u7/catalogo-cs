@@ -25,9 +25,13 @@ interface Jefe {
 const inputClass =
   "w-full bg-black/40 border border-zinc-800 text-white text-sm font-medium px-4 py-3 rounded-lg transition-all duration-300 focus:border-[#C5A55A]/60 focus:bg-black/60 focus:ring-4 focus:ring-[#C5A55A]/10 placeholder:text-zinc-600 focus:outline-none tracking-wide";
 
-export default function JefesDashboard() {
-  const [jefes, setJefes] = useState<Jefe[]>([]);
-  const [loading, setLoading] = useState(true);
+interface JefesDashboardProps {
+  initialJefes: Jefe[];
+}
+
+export default function JefesDashboard({ initialJefes }: JefesDashboardProps) {
+  const [jefes, setJefes] = useState<Jefe[]>(initialJefes);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const [showModal, setShowModal] = useState(false);
@@ -42,20 +46,13 @@ export default function JefesDashboard() {
   const [otpCodes, setOtpCodes] = useState<Record<string, string>>({});
 
   const fetchJefes = async () => {
-    setLoading(true);
     try {
       const data = await getJefesAction();
       setJefes(data);
     } catch (err: any) {
       toast.error(`Error: ${err.message || "Error al cargar jefes"}`);
-    } finally {
-      setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchJefes();
-  }, []);
 
   const handleSaveJefe = async (e: React.FormEvent) => {
     e.preventDefault();

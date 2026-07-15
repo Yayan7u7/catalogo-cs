@@ -46,12 +46,16 @@ const formatPhoneNumber = (value: string): string => {
   return cleaned;
 };
 
-export default function ChoferesDashboard() {
-  const [choferes, setChoferes] = useState<Chofer[]>([]);
-  const [loading, setLoading] = useState(true);
+interface ChoferesDashboardProps {
+  initialChoferes: Chofer[];
+}
+
+export default function ChoferesDashboard({ initialChoferes }: ChoferesDashboardProps) {
+  const [choferes, setChoferes] = useState<Chofer[]>(initialChoferes);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-    const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("+52");
   const [email, setEmail] = useState("");
@@ -67,20 +71,13 @@ export default function ChoferesDashboard() {
   const [otpCodes, setOtpCodes] = useState<Record<string, string>>({});
 
   const fetchChoferes = async () => {
-    setLoading(true);
     try {
       const data = await getChoferesAction();
       setChoferes(data);
     } catch (err: any) {
       toast.error(`Error: ${err.message || "Error al cargar choferes"}`);
-    } finally {
-      setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchChoferes();
-  }, []);
 
   const handleSaveChofer = async (e: React.FormEvent) => {
     e.preventDefault();

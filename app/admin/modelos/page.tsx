@@ -1,23 +1,21 @@
-"use client";
+import ModelosDashboard from "@/components/admin/ModelosDashboard";
+import { getModelosAction, getJefesAction, getApartmentsAction } from "@/app/actions/modelos";
 
-import dynamic from "next/dynamic";
+export const dynamic = "force-dynamic";
 
-const ModelosDashboard = dynamic(
-  () => import("@/components/admin/ModelosDashboard"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="min-h-[50vh] flex items-center justify-center">
-        <div className="flex gap-2">
-          <div className="w-2.5 h-2.5 bg-[#C5A55A]/40 rounded-full animate-pulse" />
-          <div className="w-2.5 h-2.5 bg-[#C5A55A]/40 rounded-full animate-pulse delay-75" />
-          <div className="w-2.5 h-2.5 bg-[#C5A55A]/40 rounded-full animate-pulse delay-150" />
-        </div>
-      </div>
-    ),
-  }
-);
+export default async function ModelosPage() {
+  const [initialModelos, jefes, apartments] = await Promise.all([
+    getModelosAction(false),
+    getJefesAction(),
+    getApartmentsAction(),
+  ]);
 
-export default function ModelosPage() {
-  return <ModelosDashboard />;
+  return (
+    <ModelosDashboard
+      initialModelos={initialModelos}
+      initialJefes={jefes}
+      initialApartments={apartments}
+    />
+  );
 }
+

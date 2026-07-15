@@ -1,43 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import LoginForm from "@/components/admin/LoginForm";
-import { checkSessionAction, logoutAction } from "@/app/actions/auth";
+import { logoutAction } from "@/app/actions/auth";
+
 
 interface AdminLayoutClientProps {
   children: React.ReactNode;
 }
 
 export default function AdminLayoutClient({ children }: AdminLayoutClientProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [checking, setChecking] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
-  const checkSession = async () => {
-    try {
-      const isAuth = await checkSessionAction();
-      setIsAuthenticated(isAuth);
-    } catch (e) {
-      setIsAuthenticated(false);
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  useEffect(() => {
-    checkSession();
-  }, [pathname]);
-
   const handleSignOut = async () => {
     try {
       await logoutAction();
-      setIsAuthenticated(false);
       router.push("/admin");
     } catch (e) {
       console.error(e);
@@ -48,30 +31,12 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
     return pathname === path || pathname.startsWith(path + "/");
   };
 
-  if (checking) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-        <div className="flex gap-2">
-          <div
-            className="w-2.5 h-2.5 bg-[#C5A55A]/40 rounded-full animate-bounce"
-            style={{ animationDelay: "0ms" }}
-          />
-          <div
-            className="w-2.5 h-2.5 bg-[#C5A55A]/40 rounded-full animate-bounce"
-            style={{ animationDelay: "150ms" }}
-          />
-          <div
-            className="w-2.5 h-2.5 bg-[#C5A55A]/40 rounded-full animate-bounce"
-            style={{ animationDelay: "300ms" }}
-          />
-        </div>
-      </div>
-    );
+  const isLoginPage = pathname === "/admin";
+
+  if (isLoginPage) {
+    return <LoginForm onSuccess={() => router.push("/admin/modelos")} />;
   }
 
-  if (!isAuthenticated) {
-    return <LoginForm onSuccess={() => setIsAuthenticated(true)} />;
-  }
 
   return (
     <div className="flex min-h-screen bg-black text-white font-body overflow-hidden">

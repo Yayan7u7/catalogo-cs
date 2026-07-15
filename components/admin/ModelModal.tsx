@@ -7,7 +7,6 @@ import imageCompression from "browser-image-compression";
 import type { Modelo, ModeloPayload } from "@/types";
 
 import { uploadImageAction, deleteImageAction } from "@/app/actions/upload";
-import { getJefesAction, getApartmentsAction } from "@/app/actions/modelos";
 import InputField from "../ui/InputField";
 import TextareaField from "../ui/TextareaField";
 import SelectField from "../ui/SelectField";
@@ -20,6 +19,8 @@ interface ModelModalProps {
   onClose: () => void;
   onSave: (payload: ModeloPayload, id?: string) => Promise<void>;
   showNotification: (msg: string, type: "success" | "error") => void;
+  jefes: { id: string; email: string }[];
+  apartments: { id: string; name: string }[];
 }
 
 export default function ModelModal({
@@ -27,27 +28,11 @@ export default function ModelModal({
   onClose,
   onSave,
   showNotification,
+  jefes,
+  apartments,
 }: ModelModalProps) {
-  const [jefes, setJefes] = useState<{ id: string; email: string }[]>([]);
-  const [apartments, setApartments] = useState<{ id: string; name: string }[]>([]);
   const [newExtraNombre, setNewExtraNombre] = useState("");
   const [newExtraPrecio, setNewExtraPrecio] = useState("");
-
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const [jefesList, apartmentsList] = await Promise.all([
-          getJefesAction(),
-          getApartmentsAction(),
-        ]);
-        setJefes(jefesList);
-        setApartments(apartmentsList);
-      } catch (err) {
-        console.error("Error al cargar jefes/apartamentos:", err);
-      }
-    }
-    loadData();
-  }, []);
 
   const [form, setForm] = useState<ModeloPayload>(
     modelo

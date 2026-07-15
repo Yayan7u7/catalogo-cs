@@ -12,9 +12,19 @@ import ConfirmDialog from "../ui/ConfirmDialog";
 import SearchBar from "../ui/SearchBar";
 import CreateButton from "../ui/CreateButton";
 
-export default function ModelosDashboard() {
-  const [modelos, setModelos] = useState<Modelo[]>([]);
-  const [loading, setLoading] = useState(true);
+interface ModelosDashboardProps {
+  initialModelos: Modelo[];
+  initialJefes: { id: string; email: string }[];
+  initialApartments: { id: string; name: string }[];
+}
+
+export default function ModelosDashboard({
+  initialModelos,
+  initialJefes,
+  initialApartments,
+}: ModelosDashboardProps) {
+  const [modelos, setModelos] = useState<Modelo[]>(initialModelos);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const [editingModelo, setEditingModelo] = useState<Modelo | null>(null);
@@ -38,20 +48,13 @@ export default function ModelosDashboard() {
   };
 
   const fetchData = async () => {
-    setLoading(true);
     try {
       const data = await getModelos(false); // Obtener todas (visibles y ocultas)
       setModelos(data);
     } catch (err: any) {
       showNotification(`Error: ${err.message || "Error al cargar modelos"}`, "error");
-    } finally {
-      setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const showNotification = (msg: string, type: "success" | "error") => {
     if (type === "success") {
@@ -119,6 +122,8 @@ export default function ModelosDashboard() {
             }}
             onSave={handleSaveModelo}
             showNotification={showNotification}
+            jefes={initialJefes}
+            apartments={initialApartments}
           />
         )}
       </AnimatePresence>
