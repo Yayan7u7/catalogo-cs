@@ -1,100 +1,84 @@
 import ServiceStatusBadge from "./service-status-badge";
+import type { Service } from "@/lib/types";
 
-const services = [
- {
-  id: "S-1024",
-  client: "Laura Torres",
-  service: "VIP Service",
-  employee: "Andrea",
-  driver: "Carlos",
-  status: "Completed",
- },
+type Props = {
+  initialServices?: Service[];
+};
 
- {
-  id: "S-1025",
-  client: "María López",
-  service: "Massage",
-  employee: "Fernanda",
-  driver: "Luis",
-  status: "Assigned",
- },
-
- {
-  id: "S-1026",
-  client: "Patricia Ruiz",
-  service: "Escort Premium",
-  employee: "Valeria",
-  driver: "Miguel",
-  status: "Pending",
- },
-];
-
-export default function ServicesTable() {
- return (
-  <div
-   className="
-   rounded-3xl
-   border
-   border-zinc-800
-   bg-zinc-950
-   overflow-hidden
-   "
-  >
-   <table className="w-full">
-    <thead>
-     <tr
+export default function ServicesTable({ initialServices = [] }: Props) {
+  return (
+    <div
       className="
-      border-b
+      rounded-3xl
+      border
       border-zinc-800
-      text-left
+      bg-zinc-950
+      overflow-hidden
       "
-     >
-      <th className="p-4">ID</th>
-      <th className="p-4">Client</th>
-      <th className="p-4">Service</th>
-      <th className="p-4">Employee</th>
-      <th className="p-4">Driver</th>
-      <th className="p-4">Status</th>
-     </tr>
-    </thead>
+    >
+      <table className="w-full">
+        <thead>
+          <tr
+            className="
+            border-b
+            border-zinc-800
+            text-left
+            "
+          >
+            <th className="p-4">ID</th>
+            <th className="p-4">Cliente</th>
+            <th className="p-4">Duración</th>
+            <th className="p-4">Empleada</th>
+            <th className="p-4">Total</th>
+            <th className="p-4">Estado</th>
+          </tr>
+        </thead>
 
-    <tbody>
-     {services.map((service) => (
-      <tr
-       key={service.id}
-       className="
-       border-b
-       border-zinc-900
-       hover:bg-zinc-900/50
-       "
-      >
-       <td className="p-4">{service.id}</td>
+        <tbody>
+          {initialServices.length === 0 ? (
+            <tr>
+              <td colSpan={6} className="p-8 text-center text-zinc-500">
+                No hay servicios registrados.
+              </td>
+            </tr>
+          ) : (
+            initialServices.map((service) => (
+              <tr
+                key={service.id}
+                className="
+                border-b
+                border-zinc-900
+                hover:bg-zinc-900/50
+                "
+              >
+                <td className="p-4 text-xs font-mono">{service.id.slice(-6).toUpperCase()}</td>
 
-       <td className="p-4">
-        {service.client}
-       </td>
+                <td className="p-4">
+                  {service.cliente?.nombreTelegram || "Cliente"}
+                </td>
 
-       <td className="p-4">
-        {service.service}
-       </td>
+                <td className="p-4">
+                  {service.duracionPactadaHoras}h
+                </td>
 
-       <td className="p-4">
-        {service.employee}
-       </td>
+                <td className="p-4">
+                  {service.empleada?.nombreArtistico || "No asignada"}
+                </td>
 
-       <td className="p-4">
-        {service.driver}
-       </td>
+                <td className="p-4">
+                  ${parseFloat(service.totalFinal || "0").toLocaleString()}
+                </td>
 
-       <td className="p-4">
-        <ServiceStatusBadge
-         status={service.status}
-        />
-       </td>
-      </tr>
-     ))}
-    </tbody>
-   </table>
-  </div>
- );
+                <td className="p-4">
+                  <ServiceStatusBadge
+                    status={service.estado}
+                  />
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
 }

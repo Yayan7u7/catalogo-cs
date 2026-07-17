@@ -1,6 +1,6 @@
 import EmployeeCard from "@/components/employees/employee-card";
 import PageHeader from "@/components/ui/page-header";
-import { getEmployees } from "@/lib/employees";
+import { getEmployees } from "@/lib/data/employees";
 
 export default async function EmployeesPage() {
   const employees = await getEmployees();
@@ -8,7 +8,7 @@ export default async function EmployeesPage() {
   return (
     <>
       <PageHeader
-        title="Employees"
+        title="Empleadas"
         description={`${employees.length} perfiles cargados desde BackendCitas.`}
       />
 

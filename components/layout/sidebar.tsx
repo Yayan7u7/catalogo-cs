@@ -10,61 +10,55 @@ import {
   Bell,
   BarChart3,
   BookImage,
-  UserPlus
 } from "lucide-react";
 import AssistantWidget from "@/components/ai/assistant-widget";
 
 const menu = [
   {
-    label: "Dashboard",
+    label: "Panel",
     icon: LayoutDashboard,
     href: "/dashboard",
   },
   {
-    label: "Services",
+    label: "Servicios",
     icon: BriefcaseBusiness,
     href: "/services",
   },
   {
-    label: "Employees",
+    label: "Empleadas",
     icon: Users,
     href: "/employees",
   },
   {
-    label: "Drivers",
+    label: "Choferes",
     icon: Car,
     href: "/drivers",
   },
   {
-    label: "Live Map",
+    label: "Mapa en Vivo",
     icon: Map,
     href: "/map",
   },
   {
-    label: "Alerts",
+    label: "Alertas",
     icon: Bell,
     href: "/alerts",
   },
   {
-    label: "Reports",
+    label: "Reportes",
     icon: BarChart3,
     href: "/reports",
   },
   {
-    label: "Catalog",
+    label: "Catalogo",
     icon: BookImage,
     href: "/catalog",
   },
   {
-    label: "Registry",
-    icon: UserPlus,
-    href: "/registro",
-  },
-  {
-    label: "Liquidations",
+    label: "Liquidaciones",
     href: "/liquidations",
     icon: DollarSign,
-  }
+  },
 ];
 
 export default function Sidebar() {

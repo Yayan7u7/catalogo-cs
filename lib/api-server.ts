@@ -1,10 +1,8 @@
-import { cookies } from "next/headers";
-
-export const AUTH_COOKIE = "servicepro_token";
-export const USER_COOKIE = "servicepro_user";
+import { getAccessToken } from "@/lib/auth";
 
 export function getApiBaseUrl() {
   return (
+    process.env.BACKEND_API_URL ??
     process.env.API_URL ??
     process.env.NEXT_PUBLIC_API_URL ??
     "http://127.0.0.1:4000"
@@ -16,7 +14,7 @@ type ApiFetchOptions = RequestInit & {
 };
 
 export async function getAuthToken() {
-  return (await cookies()).get(AUTH_COOKIE)?.value;
+  return getAccessToken();
 }
 
 export async function apiFetch<T>(
@@ -27,24 +25,25 @@ export async function apiFetch<T>(
 
   let response: Response;
   try {
+    const isFormData = options.body instanceof FormData;
     response = await fetch(`${getApiBaseUrl()}${path}`, {
       ...options,
       cache: "no-store",
       headers: {
-        "Content-Type": "application/json",
+        ...(!isFormData ? { "Content-Type": "application/json" } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...headers,
       },
     });
-  } catch (err) {
-    console.warn(`[Bypass Auth/Network] Network error (fetch failed) for ${path}. Is the backend running?`);
-    return [] as any;
+  } catch (error) {
+    console.warn(`[Bypass Auth/Network] Network error (fetch failed) for ${path}. Is the backend running?`, error);
+    return [] as unknown as T;
   }
 
   if (!response.ok) {
     if (response.status === 401) {
       console.warn(`[Bypass Auth] Ignored 401 Unauthorized for ${path}`);
-      return [] as any;
+      return [] as unknown as T;
     }
 
 

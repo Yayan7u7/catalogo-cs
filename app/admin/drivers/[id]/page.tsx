@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import LiveMapDynamic from "@/components/dashboard/LiveMapDynamic";
 import PageHeader from "@/components/ui/page-header";
-import { getDriver } from "@/lib/drivers";
+import { getDriver } from "@/lib/data/drivers";
 
 type Props = {
   params: Promise<{ id: string }>;

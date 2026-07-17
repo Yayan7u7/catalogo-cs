@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import LoginForm from "@/components/admin/LoginForm";
-import { logoutAction } from "@/app/actions/auth";
+import { logoutAction } from "@/lib/actions/auth";
 
 
 interface AdminLayoutClientProps {
@@ -172,16 +172,7 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
           >
             Alertas Sentimiento
           </Link>
-          <Link
-            href="/admin/registro"
-            className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
-              isActive("/admin/registro")
-                ? "text-black bg-[#C5A55A]"
-                : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
-            }`}
-          >
-            Registro
-          </Link>
+
         </nav>
         <div className="p-4 border-t border-zinc-800">
           <p className="text-[10px] text-zinc-500 mb-3 px-2 truncate text-center">
@@ -353,17 +344,7 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
             >
               Alertas Sentimiento
             </Link>
-            <Link
-              href="/admin/registro"
-              onClick={() => setMenuOpen(false)}
-              className={`px-4 py-3 text-left text-xs font-bold tracking-widest uppercase transition-colors duration-300 ${
-                isActive("/admin/registro")
-                  ? "text-[#C5A55A] bg-zinc-900/50"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              Registro
-            </Link>
+
             <div className="mt-2 pt-2 border-t border-zinc-800">
               <button
                 onClick={() => {

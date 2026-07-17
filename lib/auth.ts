@@ -38,7 +38,7 @@ export async function getSessionPayload() {
   try {
     const { payload } = await jwtVerify(token, encodedSecret);
     return payload;
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -66,7 +66,7 @@ export async function verifyToken(token: string) {
   try {
     const { payload } = await jwtVerify(token, encodedSecret);
     return payload;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

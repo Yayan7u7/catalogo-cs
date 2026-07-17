@@ -1,6 +1,6 @@
 import DriverCard from "@/components/drivers/driver-card";
 import PageHeader from "@/components/ui/page-header";
-import { getDrivers } from "@/lib/drivers";
+import { getDrivers } from "@/lib/data/drivers";
 
 export default async function DriversPage() {
   const drivers = await getDrivers();
@@ -8,7 +8,7 @@ export default async function DriversPage() {
   return (
     <>
       <PageHeader
-        title="Drivers"
+        title="Choferes"
         description={`${drivers.length} choferes cargados desde BackendCitas.`}
       />
 

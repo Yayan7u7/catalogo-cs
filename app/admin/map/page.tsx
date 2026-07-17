@@ -1,7 +1,7 @@
 import LiveMapDynamic from "@/components/dashboard/LiveMapDynamic";
 import PageHeader from "@/components/ui/page-header";
-import { getDrivers } from "@/lib/drivers";
-import { getEmployees } from "@/lib/employees";
+import { getDrivers } from "@/lib/data/drivers";
+import { getEmployees } from "@/lib/data/employees";
 
 export default async function MapPage() {
   const [employees, drivers] = await Promise.all([getEmployees(), getDrivers()]);

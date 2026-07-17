@@ -8,8 +8,8 @@ import {
   createChoferAction,
   deleteChoferAction,
   updateChoferAction,
-} from "@/app/actions/choferes";
-import { generateTelegramOtpAction } from "@/app/actions/jefes";
+} from "@/lib/actions/choferes";
+import { generateTelegramOtpAction } from "@/lib/actions/jefes";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import InputField from "../ui/InputField";
 import SearchBar from "../ui/SearchBar";

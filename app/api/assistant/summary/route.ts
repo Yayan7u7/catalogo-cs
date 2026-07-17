@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { getDrivers } from "@/lib/drivers";
-import { getEmployees } from "@/lib/employees";
+import { getDrivers } from "@/lib/data/drivers";
+import { getEmployees } from "@/lib/data/employees";
 
 export async function GET() {
   const [employees, drivers] = await Promise.all([getEmployees(), getDrivers()]);

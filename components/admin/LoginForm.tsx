@@ -5,7 +5,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
-import { loginAction } from "@/app/actions/auth";
+import { loginAction } from "@/lib/actions/auth";
 
 const inputClass =
   "w-full bg-black/40 border border-zinc-800 text-white text-sm font-medium px-4 py-3.5 rounded-lg transition-all duration-300 focus:border-[#C5A55A]/60 focus:bg-black/60 focus:ring-4 focus:ring-[#C5A55A]/10 placeholder:text-zinc-600 focus:outline-none tracking-wide";

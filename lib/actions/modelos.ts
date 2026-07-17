@@ -2,8 +2,8 @@
 
 import { getAccessToken, clearSessionCookie } from "@/lib/auth";
 import type { Modelo, ModeloPayload } from "@/types";
-
-const BACKEND_API_URL = process.env.BACKEND_API_URL || "http://localhost:4000";
+import { revalidatePath } from "next/cache";
+import { apiFetch } from "@/lib/api-server";
 
 // Mapeador de Empleadas (backend) a Modelo (frontend)
 function mapToModelo(emp: any): Modelo {
@@ -21,7 +21,7 @@ function mapToModelo(emp: any): Modelo {
     contactLabel: emp.contactLabel || "Contacto",
     disponible: emp.disponible,
     precioBaseHora: emp.precioBaseHora ? parseFloat(emp.precioBaseHora) : 100,
-    tipo: emp.tipo || "independiente",
+    // TODO: el campo `tipo` fue eliminado del backend — verificar si sigue siendo necesario
     jefeId: emp.jefeId || null,
     apartmentId: emp.apartmentId || null,
     usuarioId: emp.usuarioId || null,
@@ -41,50 +41,19 @@ function mapToModelo(emp: any): Modelo {
 export async function getModelosAction(onlyAvailable = false): Promise<Modelo[]> {
   try {
     const token = await getAccessToken();
-    let url = `${BACKEND_API_URL}/catalog/employees`;
-    let headers: Record<string, string> = {};
+    let data: any[];
 
-    // Si está autenticado, podemos llamar a la lista completa de administración
     if (token) {
-      url = `${BACKEND_API_URL}/employees`;
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-
-    const res = await fetch(url, {
-      method: "GET",
-      headers,
-      next: { revalidate: 0 }, // Evitar caché para ver actualizaciones inmediatas
-    });
-
-    if (!res.ok) {
-      if (res.status === 401 || res.status === 403) {
-        // El token no es válido o expiró, lo limpiamos
+      try {
+        data = await apiFetch<any[]>("/employees", { authenticated: true });
+      } catch (error) {
         await clearSessionCookie();
-        
-        // Si falló la petición de admin (/employees), reintentamos con el catálogo público
-        if (url.endsWith("/employees")) {
-          console.warn("Token de administrador expirado o inválido. Limpiando sesión y reintentando con catálogo público.");
-          const publicRes = await fetch(`${BACKEND_API_URL}/catalog/employees`, {
-            method: "GET",
-            next: { revalidate: 0 },
-          });
-          if (publicRes.ok) {
-            const data = await publicRes.json();
-            let list = data.map(mapToModelo);
-            if (onlyAvailable) {
-              list = list.filter((m: Modelo) => m.disponible);
-            }
-            return list.sort(() => 0.5 - Math.random());
-          }
-        }
+        data = await apiFetch<any[]>("/catalog/employees", { authenticated: false });
       }
-
-      const errText = await res.text().catch(() => "No response body");
-      console.error(`Failed to fetch employees from backend. URL: ${url}, Status: ${res.status}, Body: ${errText}`);
-      throw new Error(`No se pudo obtener las empleadas del backend (Status: ${res.status})`);
+    } else {
+      data = await apiFetch<any[]>("/catalog/employees", { authenticated: false });
     }
 
-    const data = await res.json();
     let list = data.map(mapToModelo);
 
     if (onlyAvailable) {
@@ -100,11 +69,6 @@ export async function getModelosAction(onlyAvailable = false): Promise<Modelo[]>
 }
 
 export async function createModeloAction(payload: ModeloPayload): Promise<Modelo> {
-  const token = await getAccessToken();
-  if (!token) {
-    throw new Error("No autorizado");
-  }
-
   const cleanName = payload.nombreArtistico.toLowerCase().replace(/[^a-z0-9]/g, "");
   const slug = `${payload.nombreArtistico.toLowerCase().replace(/[^a-z0-9]/g, "-")}-${Date.now().toString().slice(-4)}`;
 
@@ -128,30 +92,18 @@ export async function createModeloAction(payload: ModeloPayload): Promise<Modelo
     extras: payload.extras || [],
   };
 
-  const res = await fetch(`${BACKEND_API_URL}/employees`, {
+  const data = await apiFetch<any>("/employees", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
     body: JSON.stringify(createDto),
+    authenticated: true,
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || "Error al crear la modelo en el backend");
-  }
-
-  const data = await res.json();
+  revalidatePath("/");
+  revalidatePath("/admin/modelos");
   return mapToModelo(data);
 }
 
 export async function updateModeloAction(id: string, payload: ModeloPayload): Promise<Modelo> {
-  const token = await getAccessToken();
-  if (!token) {
-    throw new Error("No autorizado");
-  }
-
   const updateDto = {
     nombreReal: payload.nombreReal,
     nombreArtistico: payload.nombreArtistico,
@@ -168,57 +120,33 @@ export async function updateModeloAction(id: string, payload: ModeloPayload): Pr
     extras: payload.extras || [],
   };
 
-  const res = await fetch(`${BACKEND_API_URL}/employees/${id}`, {
+  const data = await apiFetch<any>(`/employees/${id}`, {
     method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
     body: JSON.stringify(updateDto),
+    authenticated: true,
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || "Error al actualizar la modelo en el backend");
-  }
-
-  const data = await res.json();
+  revalidatePath("/");
+  revalidatePath("/admin/modelos");
   return mapToModelo(data);
 }
 
 export async function deleteModeloAction(id: string): Promise<void> {
-  const token = await getAccessToken();
-  if (!token) {
-    throw new Error("No autorizado");
-  }
-
-  const res = await fetch(`${BACKEND_API_URL}/employees/${id}`, {
+  await apiFetch<void>(`/employees/${id}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    authenticated: true,
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || "Error al eliminar la modelo en el backend");
-  }
+  revalidatePath("/");
+  revalidatePath("/admin/modelos");
 }
 
+// TODO: verificar si GET /users?rol=jefe existe en el backend o si hay un endpoint especifico para listar jefes
 export async function getJefesAction(): Promise<{ id: string; email: string }[]> {
   try {
-    const token = await getAccessToken();
-    if (!token) throw new Error("No autorizado");
-
-    const res = await fetch(`${BACKEND_API_URL}/users?rol=jefe`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const users = await apiFetch<any[]>("/users?rol=jefe", {
+      authenticated: true,
     });
-
-    if (!res.ok) throw new Error("Error al obtener usuarios");
-    const users = await res.json();
     return users.map((u: any) => ({ id: u.id, email: u.email }));
   } catch (error) {
     console.error("getJefesAction error:", error);
@@ -226,20 +154,12 @@ export async function getJefesAction(): Promise<{ id: string; email: string }[]>
   }
 }
 
+// TODO: verificar si el modulo /apartments existe en el backend antes de usar esta accion
 export async function getApartmentsAction(): Promise<{ id: string; name: string }[]> {
   try {
-    const token = await getAccessToken();
-    if (!token) throw new Error("No autorizado");
-
-    const res = await fetch(`${BACKEND_API_URL}/apartments`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const apartments = await apiFetch<any[]>("/apartments", {
+      authenticated: true,
     });
-
-    if (!res.ok) throw new Error("Error al obtener apartamentos");
-    const apartments = await res.json();
     return apartments.map((a: any) => ({
       id: a.id,
       name: a.nombre || `Apto ${a.nombre || a.id}`,

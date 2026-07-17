@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import imageCompression from "browser-image-compression";
 import type { Modelo, ModeloPayload } from "@/types";
 
-import { uploadImageAction, deleteImageAction } from "@/app/actions/upload";
+import { uploadImageAction, deleteImageAction } from "@/lib/actions/upload";
 import InputField from "../ui/InputField";
 import TextareaField from "../ui/TextareaField";
 import SelectField from "../ui/SelectField";

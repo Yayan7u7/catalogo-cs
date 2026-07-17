@@ -1,5 +1,5 @@
 import ModelosDashboard from "@/components/admin/ModelosDashboard";
-import { getModelosAction, getJefesAction, getApartmentsAction } from "@/app/actions/modelos";
+import { getModelosAction, getJefesAction, getApartmentsAction } from "@/lib/actions/modelos";
 
 export const dynamic = "force-dynamic";
 

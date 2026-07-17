@@ -18,7 +18,7 @@ export interface Modelo {
   contactLabel: string;
   disponible: boolean;
   precioBaseHora: number;
-  tipo: "independiente" | "agencia";
+  tipo?: "independiente" | "agencia"; // TODO: campo eliminado del backend, mantener opcional hasta eliminar por completo
   jefeId?: string | null;
   apartmentId?: string | null;
   usuarioId?: string | null;
@@ -38,7 +38,7 @@ export interface ModeloPayload {
   contactLabel: string;
   disponible?: boolean;
   precioBaseHora: number;
-  tipo: "independiente" | "agencia";
+  tipo?: "independiente" | "agencia"; // TODO: campo eliminado del backend, mantener opcional hasta eliminar por completo
   jefeId?: string | null;
   apartmentId?: string | null;
   extras?: ServiceExtra[];

@@ -4,9 +4,14 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { getModelos, deleteModelo, createModelo, updateModelo, type ModeloPayload } from "@/lib/api";
-import { generateTelegramOtpAction } from "@/app/actions/jefes";
-import type { Modelo } from "@/types";
+import {
+  getModelosAction as getModelos,
+  deleteModeloAction as deleteModelo,
+  createModeloAction as createModelo,
+  updateModeloAction as updateModelo,
+} from "@/lib/actions/modelos";
+import { generateTelegramOtpAction } from "@/lib/actions/jefes";
+import type { Modelo, ModeloPayload } from "@/types";
 import ModelModal from "./ModelModal";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import SearchBar from "../ui/SearchBar";

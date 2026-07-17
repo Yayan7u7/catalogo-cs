@@ -1,15 +1,18 @@
 import PageHeader from "@/components/ui/page-header";
 import ServicesTable from "@/components/services/services-table";
+import { getServices } from "@/lib/data/services";
 
-export default function ServicesPage() {
- return (
-  <>
-   <PageHeader
-    title="Services"
-    description="Manage active and completed services."
-   />
+export default async function ServicesPage() {
+  const services = await getServices();
 
-   <ServicesTable />
-  </>
- );
+  return (
+    <>
+      <PageHeader
+        title="Servicios"
+        description="Gestionar servicios activos y completados."
+      />
+
+      <ServicesTable initialServices={services} />
+    </>
+  );
 }

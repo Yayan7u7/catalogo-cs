@@ -9,7 +9,7 @@ import {
   deleteJefeAction,
   updateJefeAction,
   generateTelegramOtpAction,
-} from "@/app/actions/jefes";
+} from "@/lib/actions/jefes";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import InputField from "../ui/InputField";
 import SearchBar from "../ui/SearchBar";

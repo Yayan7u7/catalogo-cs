@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import PageHeader from "@/components/ui/page-header";
-import { getEmployee } from "@/lib/employees";
+import { getEmployee } from "@/lib/data/employees";
+import Image from "next/image";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -22,9 +23,11 @@ export default async function EmployeeDetailPage({ params }: Props) {
         <div className="xl:col-span-4">
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
             {employee.fotoPerfilUrl ? (
-              <img
+              <Image
                 src={employee.fotoPerfilUrl}
                 alt={employee.nombreArtistico}
+                width={400}
+                height={400}
                 className="aspect-square w-full rounded-xl object-cover"
               />
             ) : (
@@ -84,10 +87,12 @@ export default async function EmployeeDetailPage({ params }: Props) {
             <div className="mt-4 grid gap-4 md:grid-cols-3">
               {photos.length > 0 ? (
                 photos.map((photo) => (
-                  <img
+                  <Image
                     key={photo.id}
                     src={photo.url}
                     alt={`${employee.nombreArtistico} ${photo.orden + 1}`}
+                    width={250}
+                    height={250}
                     className="aspect-square rounded-xl object-cover"
                   />
                 ))
