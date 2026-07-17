@@ -48,6 +48,7 @@ export default function ModelModal({
           disponible: modelo.disponible,
           precioBaseHora: modelo.precioBaseHora,
           jefeId: modelo.jefeId,
+          jefeSecundarioId: modelo.jefeSecundarioId,
           apartmentId: modelo.apartmentId,
           extras: modelo.extras ? [...modelo.extras] : [],
         }
@@ -63,6 +64,7 @@ export default function ModelModal({
           disponible: true,
           precioBaseHora: 100,
           jefeId: "",
+          jefeSecundarioId: "",
           apartmentId: "",
           extras: [],
         }
@@ -329,16 +331,6 @@ export default function ModelModal({
                 rows={3}
               />
 
-              <InputField
-                label="Tarifa por Hora (MXN)"
-                type="number"
-                value={form.precioBaseHora}
-                onChange={(e) => setForm({ ...form, precioBaseHora: parseFloat(e.target.value) || 0 })}
-                placeholder="Ej: 100"
-                required
-                min={0}
-              />
-
               <div className="grid grid-cols-2 gap-4">
                 <SelectField
                   label="Jefe Asignado"
@@ -350,6 +342,18 @@ export default function ModelModal({
                   ]}
                 />
                 <SelectField
+                  label="Jefe Secundario"
+                  value={form.jefeSecundarioId || ""}
+                  onChange={(e) => setForm({ ...form, jefeSecundarioId: e.target.value || null })}
+                  options={[
+                    { value: "", label: "Ninguno" },
+                    ...jefes.map((j) => ({ value: j.id, label: j.email })),
+                  ]}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <SelectField
                   label="Departamento/Apartamento"
                   value={form.apartmentId || ""}
                   onChange={(e) => setForm({ ...form, apartmentId: e.target.value || null })}
@@ -357,6 +361,15 @@ export default function ModelModal({
                     { value: "", label: "Ninguno" },
                     ...apartments.map((a) => ({ value: a.id, label: a.name })),
                   ]}
+                />
+                <InputField
+                  label="Tarifa por Hora (MXN)"
+                  type="number"
+                  value={form.precioBaseHora}
+                  onChange={(e) => setForm({ ...form, precioBaseHora: parseFloat(e.target.value) || 0 })}
+                  placeholder="Ej: 100"
+                  required
+                  min={0}
                 />
               </div>
 

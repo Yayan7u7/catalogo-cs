@@ -23,6 +23,7 @@ function mapToModelo(emp: any): Modelo {
     precioBaseHora: emp.precioBaseHora ? parseFloat(emp.precioBaseHora) : 100,
     // TODO: el campo `tipo` fue eliminado del backend — verificar si sigue siendo necesario
     jefeId: emp.jefeId || null,
+    jefeSecundarioId: emp.jefeSecundarioId || null,
     apartmentId: emp.apartmentId || null,
     usuarioId: emp.usuarioId || null,
     createdAt: emp.createdAt,
@@ -84,6 +85,7 @@ export async function createModeloAction(payload: ModeloPayload): Promise<Modelo
     disponible: payload.disponible ?? true,
     catalogoActivo: true,
     jefeId: payload.jefeId || null,
+    jefeSecundarioId: payload.jefeSecundarioId || null,
     apartmentId: payload.apartmentId || null,
     linkX: payload.linkX || null,
     contactLabel: payload.contactLabel || null,
@@ -111,6 +113,7 @@ export async function updateModeloAction(id: string, payload: ModeloPayload): Pr
     precioBaseHora: payload.precioBaseHora,
     disponible: payload.disponible,
     jefeId: payload.jefeId || null,
+    jefeSecundarioId: payload.jefeSecundarioId || null,
     apartmentId: payload.apartmentId || null,
     linkX: payload.linkX || null,
     contactLabel: payload.contactLabel || null,
