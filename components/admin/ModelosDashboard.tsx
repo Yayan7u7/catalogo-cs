@@ -108,7 +108,7 @@ export default function ModelosDashboard({
           <ConfirmDialog
             key="confirm-delete"
             title={`Eliminar a "${confirmDelete.nombre}"`}
-            description="Esta accion es permanente. El perfil y sus datos seran removidos del catalogo de inmediato. Las fotos en el storage deben borrarse manualmente si asi se desea."
+            description="Esta accion es permanente. El perfil, sus datos y sus fotos asociadas en la nube seran removidos por completo de inmediato."
             labelConfirm="Si, eliminar"
             onConfirm={() => confirmDeleteHandler(confirmDelete)}
             onCancel={() => setConfirmDelete(null)}

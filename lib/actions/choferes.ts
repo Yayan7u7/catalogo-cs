@@ -45,9 +45,9 @@ export async function createChoferAction(
   vehiculoModelo?: string,
   vehiculoColor?: string,
   vehiculoPlaca?: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    await apiFetch("/drivers", {
+    const res = await apiFetch<any>("/drivers", {
       method: "POST",
       body: JSON.stringify({
         nombre,
@@ -62,7 +62,20 @@ export async function createChoferAction(
       authenticated: true,
     });
 
-    return { success: true };
+    return {
+      success: true,
+      data: {
+        id: res.id,
+        nombre: res.nombre,
+        telefono: res.telefono,
+        email: res.usuario?.email || email,
+        usuarioId: res.usuarioId,
+        vehiculoMarca: res.vehiculoMarca || "",
+        vehiculoModelo: res.vehiculoModelo || "",
+        vehiculoColor: res.vehiculoColor || "",
+        vehiculoPlaca: res.vehiculoPlaca || "",
+      },
+    };
   } catch (error: any) {
     console.error("createChoferAction error:", error);
     return { success: false, error: error.message || "Error de conexion con el servidor" };

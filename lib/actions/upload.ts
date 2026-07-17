@@ -28,3 +28,26 @@ export async function deleteImageAction(url: string) {
     throw new Error(error.message || "Error de conexión al eliminar la imagen");
   }
 }
+
+export async function uploadImagesAction(formData: FormData) {
+  try {
+    const files = formData.getAll("files") as File[];
+    const urls: string[] = [];
+
+    for (const file of files) {
+      const singleFormData = new FormData();
+      singleFormData.append("file", file);
+      
+      const data = await apiFetch<any>("/upload", {
+        method: "POST",
+        body: singleFormData,
+        authenticated: true,
+      });
+      urls.push(data.url as string);
+    }
+    return urls;
+  } catch (error: any) {
+    console.error("uploadImagesAction error:", error);
+    throw new Error(error.message || "Error al subir las imágenes");
+  }
+}

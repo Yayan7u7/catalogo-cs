@@ -3,7 +3,7 @@
 import type { Driver, Employee } from "@/lib/types";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 
 type Props = {
@@ -23,15 +23,83 @@ function toPosition(lat?: string | null, lng?: string | null) {
   return position;
 }
 
-function RecenterMap({ center }: { center: [number, number] }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(center, map.getZoom());
-  }, [center, map]);
-  return null;
-}
-
 export default function LiveMap({ employees, drivers }: Props) {
+  const [localDrivers, setLocalDrivers] = useState<Driver[]>(drivers);
+  const [localEmployees, setLocalEmployees] = useState<Employee[]>(employees);
+
+  const [initialCenter] = useState<[number, number]>(() => {
+    const dMarkers = drivers
+      .map((driver) => ({
+        ...driver,
+        position: toPosition(driver.ubicacionLat, driver.ubicacionLng),
+      }))
+      .filter(
+        (driver): driver is typeof driver & { position: [number, number] } =>
+          Boolean(driver.position),
+      );
+
+    const eMarkers = employees
+      .map((employee) => ({
+        ...employee,
+        position: toPosition(employee.ubicacionLat, employee.ubicacionLng),
+      }))
+      .filter(
+        (employee): employee is typeof employee & { position: [number, number] } =>
+          Boolean(employee.position),
+      );
+
+    return (
+      dMarkers[0]?.position ??
+      eMarkers[0]?.position ??
+      [20.5235, -100.8157]
+    );
+  });
+
+  useEffect(() => {
+    setLocalDrivers(drivers);
+  }, [drivers]);
+
+  useEffect(() => {
+    setLocalEmployees(employees);
+  }, [employees]);
+
+  useEffect(() => {
+    const eventSource = new EventSource("/api/realtime/sse");
+
+    eventSource.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.type === "DRIVER_LOCATION_UPDATE" && payload.choferId) {
+          setLocalDrivers((prev) =>
+            prev.map((d) =>
+              d.id === payload.choferId
+                ? { ...d, ubicacionLat: payload.lat, ubicacionLng: payload.lng }
+                : d,
+            ),
+          );
+        } else if (payload.type === "EMPLOYEE_LOCATION_UPDATE" && payload.empleadaId) {
+          setLocalEmployees((prev) =>
+            prev.map((e) =>
+              e.id === payload.empleadaId
+                ? { ...e, ubicacionLat: payload.lat, ubicacionLng: payload.lng }
+                : e,
+            ),
+          );
+        }
+      } catch (err) {
+        console.error("Error al decodificar evento SSE:", err);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error("Error en la conexion SSE:", err);
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, []);
+
   const driverIcon = L.divIcon({
     html: `
     <div style="
@@ -59,7 +127,8 @@ export default function LiveMap({ employees, drivers }: Props) {
     `,
     className: "",
   });
-  const driverMarkers = drivers
+
+  const driverMarkers = localDrivers
     .map((driver) => ({
       ...driver,
       position: toPosition(driver.ubicacionLat, driver.ubicacionLng),
@@ -68,7 +137,8 @@ export default function LiveMap({ employees, drivers }: Props) {
       (driver): driver is typeof driver & { position: [number, number] } =>
         Boolean(driver.position),
     );
-  const employeeMarkers = employees
+
+  const employeeMarkers = localEmployees
     .map((employee) => ({
       ...employee,
       position: toPosition(employee.ubicacionLat, employee.ubicacionLng),
@@ -77,15 +147,11 @@ export default function LiveMap({ employees, drivers }: Props) {
       (employee): employee is typeof employee & { position: [number, number] } =>
         Boolean(employee.position),
     );
-  const center =
-    driverMarkers[0]?.position ??
-    employeeMarkers[0]?.position ??
-    ([20.5235, -100.8157] as [number, number]);
 
   return (
     <div className="h-[550px] overflow-hidden rounded-2xl border border-zinc-800">
       <MapContainer
-        center={center}
+        center={initialCenter}
         zoom={13}
         style={{
           width: "100%",
@@ -93,7 +159,6 @@ export default function LiveMap({ employees, drivers }: Props) {
         }}
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        <RecenterMap center={center} />
 
         {driverMarkers.map((driver) => (
           <Marker key={driver.id} position={driver.position} icon={driverIcon}>
