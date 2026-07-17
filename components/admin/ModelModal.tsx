@@ -47,7 +47,6 @@ export default function ModelModal({
           contactLabel: modelo.contactLabel,
           disponible: modelo.disponible,
           precioBaseHora: modelo.precioBaseHora,
-          tipo: modelo.tipo,
           jefeId: modelo.jefeId,
           apartmentId: modelo.apartmentId,
           extras: modelo.extras ? [...modelo.extras] : [],
@@ -63,7 +62,6 @@ export default function ModelModal({
           contactLabel: "Contacto",
           disponible: true,
           precioBaseHora: 100,
-          tipo: "independiente",
           jefeId: "",
           apartmentId: "",
           extras: [],
@@ -289,15 +287,6 @@ export default function ModelModal({
                   placeholder="Ej: 100"
                   required
                   min={0}
-                />
-                <SelectField
-                  label="Tipo de Perfil"
-                  value={form.tipo}
-                  onChange={(e) => setForm({ ...form, tipo: e.target.value as "independiente" | "agencia" })}
-                  options={[
-                    { value: "independiente", label: "Independiente" },
-                    { value: "agencia", label: "Agencia" },
-                  ]}
                 />
               </div>
 

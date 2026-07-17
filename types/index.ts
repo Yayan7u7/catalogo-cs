@@ -18,7 +18,6 @@ export interface Modelo {
   contactLabel: string;
   disponible: boolean;
   precioBaseHora: number;
-  tipo: "independiente" | "agencia";
   jefeId?: string | null;
   apartmentId?: string | null;
   usuarioId?: string | null;
@@ -38,7 +37,6 @@ export interface ModeloPayload {
   contactLabel: string;
   disponible?: boolean;
   precioBaseHora: number;
-  tipo: "independiente" | "agencia";
   jefeId?: string | null;
   apartmentId?: string | null;
   extras?: ServiceExtra[];
