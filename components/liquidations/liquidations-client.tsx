@@ -1,114 +1,135 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { getLiquidationsRecords, getEmployeesAndUsers } from "@/app/admin/liquidations/actions";
-import { calculateCutReport, getStartAndEndOfWeek } from "@/lib/calculations";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import {
+  getLiquidationEmployees,
+  getLiquidationReport,
+  confirmWeeklySettlement,
+} from "@/app/admin/liquidations/actions";
+import { getStartAndEndOfWeek } from "@/lib/calculations";
 import PageHeader from "@/components/ui/page-header";
-import WeekSelector from "./week-selector";
-import LiquidationSummary from "./liquidation-summary";
-import LiquidationBreakdown from "./liquidation-breakdown";
 import CutComparison from "./cut-comparison";
 import DebtManager from "./debt-manager";
+import LiquidationBreakdown from "./liquidation-breakdown";
+import LiquidationSummary from "./liquidation-summary";
+import type { LiquidationEmployee, LiquidationReport } from "./types";
+import WeekSelector from "./week-selector";
 
 export default function LiquidationsClient() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [records, setRecords] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState<string>("");
-  const [report, setReport] = useState<any>(null);
+  const [employees, setEmployees] = useState<LiquidationEmployee[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+  const [report, setReport] = useState<LiquidationReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingReport, setLoadingReport] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
-  const fetchWeekRecords = useCallback(async () => {
+  const period = useMemo(() => getStartAndEndOfWeek(currentDate), [currentDate]);
+
+  const loadEmployees = useCallback(async () => {
+    setLoading(true);
+    setReport(null);
     try {
-      setLoading(true);
-      const { start, end } = getStartAndEndOfWeek(currentDate);
-      
-      const [recs, usr] = await Promise.all([
-        getLiquidationsRecords(start.toISOString(), end.toISOString()),
-        getEmployeesAndUsers(),
-      ]);
-      
-      setRecords(recs || []);
-      setUsers(usr || []);
+      const data = await getLiquidationEmployees(
+        period.start.toISOString(),
+        period.end.toISOString(),
+      );
+      setEmployees(data ?? []);
+      setSelectedEmployeeId((current) =>
+        data?.some((employee) => employee.id === current) ? current : "",
+      );
     } catch (error) {
-      console.error("Error fetching data:", error);
+      setEmployees([]);
+      toast.error(error instanceof Error ? error.message : "No fue posible cargar las liquidaciones");
     } finally {
       setLoading(false);
     }
-  }, [currentDate]);
+  }, [period]);
 
   useEffect(() => {
-    fetchWeekRecords();
-  }, [fetchWeekRecords]);
-
-  // Group employees
-  const employeeGroups = useMemo(() => {
-    if (!users || !records) return [];
-
-    const activeNames = new Set(
-      records.filter((r) => r.nombre_empleada).map((r) => r.nombre_empleada),
-    );
-
-    const allEmps = users.filter((u) => u.rol === "empleada");
-    const jefes = users.filter((u) => u.rol === "jefe" && u.estado !== "inactivo");
-
-    const groups: Record<string, any> = {};
-    jefes.forEach((jefe) => {
-      groups[jefe.id] = {
-        id: jefe.id,
-        name: `👤 ${jefe.nombre}`,
-        employees: [],
-      };
-    });
-    groups["sin_asignar"] = { id: "sin_asignar", name: "📋 Sin Asignar", employees: [] };
-
-    allEmps.forEach((emp) => {
-      const hasActivity = activeNames.has(emp.nombre);
-      if (!hasActivity) return; // Only show active
-
-      const jefesDeEsta = emp.jefes_asignados || [];
-      const isShared = jefesDeEsta.length > 1;
-      const empData = { name: emp.nombre, hasActivity, isShared };
-
-      if (jefesDeEsta.length > 0) {
-        jefesDeEsta.forEach((j: any) => {
-          if (groups[j.jefe_id]) {
-            groups[j.jefe_id].employees.push(empData);
-          }
-        });
-      } else {
-        groups["sin_asignar"].employees.push(empData);
-      }
-    });
-
-    return Object.values(groups).filter((g) => g.employees.length > 0);
-  }, [users, records]);
+    void loadEmployees();
+  }, [loadEmployees]);
 
   useEffect(() => {
-    if (selectedEmployee && records.length > 0) {
-      const data = calculateCutReport(records, selectedEmployee);
-      setReport(data);
-    } else {
+    if (!selectedEmployeeId) {
       setReport(null);
+      return;
     }
-  }, [selectedEmployee, records]);
+
+    let active = true;
+    setLoadingReport(true);
+    getLiquidationReport(
+      period.start.toISOString(),
+      period.end.toISOString(),
+      selectedEmployeeId,
+    )
+      .then((data) => {
+        if (active) setReport(data);
+      })
+      .catch((error) => {
+        if (active) {
+          setReport(null);
+          toast.error(error instanceof Error ? error.message : "No fue posible calcular el corte");
+        }
+      })
+      .finally(() => {
+        if (active) setLoadingReport(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [period, selectedEmployeeId]);
+
+  const employeeGroups = useMemo(() => {
+    const groups = new Map<string, { id: string; name: string; employees: LiquidationEmployee[] }>();
+    for (const employee of employees) {
+      if (employee.bosses.length === 0) {
+        const group = groups.get("unassigned") ?? {
+          id: "unassigned",
+          name: "Sin asignar",
+          employees: [],
+        };
+        group.employees.push(employee);
+        groups.set(group.id, group);
+        continue;
+      }
+      for (const boss of employee.bosses) {
+        const group = groups.get(boss.id) ?? {
+          id: boss.id,
+          name: boss.name,
+          employees: [],
+        };
+        group.employees.push(employee);
+        groups.set(group.id, group);
+      }
+    }
+    return [...groups.values()];
+  }, [employees]);
+
+  const selectedEmployee = employees.find(
+    (employee) => employee.id === selectedEmployeeId,
+  );
 
   const changeWeek = (days: number) => {
-    const d = new Date(currentDate);
-    d.setDate(d.getDate() + days);
-    setCurrentDate(d);
+    setCurrentDate((current) => {
+      const next = new Date(current);
+      next.setDate(next.getDate() + days);
+      return next;
+    });
   };
-
-  const selectedEmployeeData = users.find((u) => u.nombre === selectedEmployee);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <PageHeader title="Liquidaciones (Cortes)" description="Gestión financiera unificada" />
-        {loading && <span className="text-sm text-brand-gold animate-pulse">Actualizando...</span>}
+        {(loading || loadingReport) && (
+          <span className="text-sm text-brand-gold animate-pulse">Actualizando...</span>
+        )}
       </div>
 
-      <div className="flex justify-center w-full">
+      <div className="flex w-full justify-center">
         <WeekSelector
           currentDate={currentDate}
           onPrev={() => changeWeek(-7)}
@@ -118,56 +139,70 @@ export default function LiquidationsClient() {
 
       {!loading && (
         <div className="space-y-6">
-          <div className="bg-zinc-950 p-6 rounded-3xl border border-zinc-800 shadow-md">
-            <h3 className="text-zinc-400 font-medium text-sm mb-4">SELECCIONA EMPLEADA (ACTIVAS ESTA SEMANA)</h3>
-            <div className="flex flex-wrap gap-2">
-              {employeeGroups.map((group, idx) => (
-                <div key={idx} className="flex gap-2 items-center mr-4">
-                  <span className="text-xs text-brand-gold font-semibold uppercase">{group.name}:</span>
-                  {group.employees.map((emp: any, i: number) => (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedEmployee(emp.name)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
-                        selectedEmployee === emp.name
-                          ? "bg-brand-gold text-black border-brand-gold"
-                          : "bg-zinc-900 text-zinc-300 border-zinc-800 hover:border-brand-gold/50"
-                      }`}
-                    >
-                      {emp.name} {emp.isShared && "🔄"}
-                    </button>
-                  ))}
+          <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5 shadow-md sm:p-6">
+            <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-zinc-400">
+              Empleadas activas esta semana
+            </h2>
+            <div className="space-y-4">
+              {employeeGroups.map((group) => (
+                <div key={group.id} className="space-y-2">
+                  <p className="text-xs font-semibold uppercase text-brand-gold">{group.name}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {group.employees.map((employee) => (
+                      <button
+                        key={`${group.id}-${employee.id}`}
+                        type="button"
+                        onClick={() => setSelectedEmployeeId(employee.id)}
+                        className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                          selectedEmployeeId === employee.id
+                            ? "border-brand-gold bg-brand-gold text-black"
+                            : "border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-brand-gold/50"
+                        }`}
+                      >
+                        {employee.name}
+                        {employee.bosses.length > 1 ? " · Compartida" : ""}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ))}
-              {employeeGroups.length === 0 && <span className="text-zinc-500 text-sm">No hay actividad esta semana.</span>}
+              {employeeGroups.length === 0 && (
+                <p className="text-sm text-zinc-500">No hay actividad esta semana.</p>
+              )}
             </div>
-          </div>
+          </section>
 
-          {report && selectedEmployeeData && (
+          {report && selectedEmployee && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                  <CutComparison
-                    report={report}
-                    records={records.filter((r) => r.nombre_empleada === selectedEmployee)}
-                  />
+              <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5 sm:p-6">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <SettlementMetric label="Pago bruto semanal" value={report.weeklySettlement.grossEmployeePay} />
+                  <SettlementMetric label="Efectivo compensado" value={report.weeklySettlement.cashOffset} />
+                  <SettlementMetric label="Pago neto" value={report.weeklySettlement.netEmployeePay} />
+                  <SettlementMetric label="Efectivo pendiente posterior" value={report.weeklySettlement.remainingCashDebt} />
+                </div>
+                <button type="button" disabled={confirming || report.weeklySettlement.status === "confirmed"} onClick={async () => { setConfirming(true); try { await confirmWeeklySettlement(period.start.toISOString(), period.end.toISOString(), selectedEmployee.id); setReport(await getLiquidationReport(period.start.toISOString(), period.end.toISOString(), selectedEmployee.id)); toast.success("Liquidación semanal confirmada"); } catch (error) { toast.error(error instanceof Error ? error.message : "No fue posible confirmar la liquidación"); } finally { setConfirming(false); } }} className="mt-5 w-full rounded-xl border border-brand-gold py-3 text-xs font-semibold uppercase tracking-wider text-brand-gold disabled:border-zinc-800 disabled:text-zinc-600">
+                  {report.weeklySettlement.status === "confirmed" ? "Liquidación confirmada" : confirming ? "Confirmando" : "Confirmar liquidación semanal"}
+                </button>
+              </section>
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="space-y-6 lg:col-span-2">
+                  <CutComparison report={report} />
                 </div>
                 <div className="space-y-6">
-                  <LiquidationSummary
-                    cut={report.finalCut}
-                    employeeName={selectedEmployee}
-                  />
+                  <LiquidationSummary cut={report.finalCut} employeeName={selectedEmployee.name} />
                   <LiquidationBreakdown cut={report.finalCut} />
                 </div>
               </div>
-
-              <div className="mt-12">
-                <DebtManager employeeId={selectedEmployeeData.id} employeeName={selectedEmployee} />
-              </div>
+              <DebtManager employeeId={selectedEmployee.id} employeeName={selectedEmployee.name} />
             </div>
           )}
         </div>
       )}
     </div>
   );
+}
+
+function SettlementMetric({ label, value }: { label: string; value: number }) {
+  return <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4"><p className="text-xs uppercase tracking-wider text-zinc-500">{label}</p><p className="mt-2 font-serif text-2xl text-zinc-100">{new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(value)}</p></div>;
 }

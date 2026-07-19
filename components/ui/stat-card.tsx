@@ -1,47 +1,54 @@
-import { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 type Props = {
   title: string;
   value: string | number;
   icon: LucideIcon;
+  variant?: "default" | "compact";
 };
 
 export default function StatCard({
   title,
   value,
   icon: Icon,
+  variant = "default",
 }: Props) {
+  const isCompact = variant === "compact";
+
   return (
     <div
-      className="
-      rounded-3xl
-      border
-      border-zinc-800
-      bg-[#0f0f0f]
-      p-7
-      "
+      className={
+        isCompact
+          ? "min-w-0 rounded-2xl border border-zinc-800 bg-[#0f0f0f] p-4 sm:p-5"
+          : "rounded-3xl border border-zinc-800 bg-[#0f0f0f] p-7"
+      }
     >
-      <div className="flex justify-between items-center">
-        <span className="text-zinc-400">
+      <div className="flex items-start justify-between gap-3">
+        <span
+          className={
+            isCompact
+              ? "min-w-0 text-xs leading-snug text-zinc-400 sm:text-sm"
+              : "text-zinc-400"
+          }
+        >
           {title}
         </span>
 
         <Icon
-          size={22}
-          className="text-[#D4AF37]"
+          size={isCompact ? 18 : 22}
+          className="shrink-0 text-[#D4AF37]"
         />
       </div>
 
-      <h2
-        className="
-        text-5xl
-        font-bold
-        mt-5
-        text-white
-        "
+      <p
+        className={
+          isCompact
+            ? "mt-3 font-serif text-2xl font-semibold leading-none tracking-tight text-white tabular-nums sm:text-3xl"
+            : "mt-5 text-5xl font-bold text-white"
+        }
       >
         {value}
-      </h2>
+      </p>
     </div>
   );
 }

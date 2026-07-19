@@ -123,6 +123,16 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
             Liquidaciones
           </Link>
           <Link
+            href="/admin/transport"
+            className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
+              isActive("/admin/transport")
+                ? "text-black bg-[#C5A55A]"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
+            }`}
+          >
+            Transporte
+          </Link>
+          <Link
             href="/admin/reports"
             className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
               isActive("/admin/reports")
@@ -288,6 +298,17 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
               }`}
             >
               Liquidaciones
+            </Link>
+            <Link
+              href="/admin/transport"
+              onClick={() => setMenuOpen(false)}
+              className={`px-4 py-3 text-left text-xs font-bold tracking-widest uppercase transition-colors duration-300 ${
+                isActive("/admin/transport")
+                  ? "text-[#C5A55A] bg-zinc-900/50"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Transporte
             </Link>
             <Link
               href="/admin/reports"

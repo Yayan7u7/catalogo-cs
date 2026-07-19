@@ -1,9 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { getDeudas, createDeuda, deleteDeuda, addPagoToDeuda, deletePagoFromDeuda } from "@/app/admin/liquidations/actions";
-import { formatCurrency, formatDateTime } from "@/lib/calculations";
+import { useCallback, useEffect, useState } from "react";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  addDebtPayment,
+  createDebt,
+  deleteDebt,
+  deleteDebtPayment,
+  getDebts,
+} from "@/app/admin/liquidations/actions";
 import { Button } from "@/components/ui/button";
+import { formatCurrency, formatDateTime } from "@/lib/calculations";
+import type { LiquidationDebt } from "./types";
 
 interface Props {
   employeeId: string;
@@ -11,155 +20,199 @@ interface Props {
 }
 
 export default function DebtManager({ employeeId, employeeName }: Props) {
-  const [deudas, setDeudas] = useState<any[]>([]);
+  const [debts, setDebts] = useState<LiquidationDebt[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Form states
+  const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [montoTotal, setMontoTotal] = useState("");
-  const [descripcion, setDescripcion] = useState("");
+  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState("");
+  const [paymentDebtId, setPaymentDebtId] = useState<string | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentNote, setPaymentNote] = useState("");
 
-  const [showPagoForm, setShowPagoForm] = useState<string | null>(null);
-  const [pagoMonto, setPagoMonto] = useState("");
-  const [pagoNota, setPagoNota] = useState("");
-
-  const loadDeudas = useCallback(async () => {
+  const loadDebts = useCallback(async () => {
     setLoading(true);
-    const data = await getDeudas(employeeId);
-    setDeudas(data);
-    setLoading(false);
+    try {
+      setDebts((await getDebts(employeeId)) ?? []);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No fue posible cargar las deudas");
+    } finally {
+      setLoading(false);
+    }
   }, [employeeId]);
 
   useEffect(() => {
-    loadDeudas();
-  }, [loadDeudas]);
+    void loadDebts();
+  }, [loadDebts]);
+
+  const run = async (operation: () => Promise<unknown>, successMessage: string) => {
+    setSubmitting(true);
+    try {
+      await operation();
+      toast.success(successMessage);
+      await loadDebts();
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "La operación no pudo completarse");
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleCreate = async () => {
-    if (!montoTotal || !descripcion) return;
-    await createDeuda({
-      uid_empleada: employeeId,
-      monto_total: Number(montoTotal),
-      descripcion,
-    });
-    setMontoTotal("");
-    setDescripcion("");
-    setShowForm(false);
-    loadDeudas();
-  };
-
-  const handleAddPago = async (deudaId: string) => {
-    if (!pagoMonto) return;
-    await addPagoToDeuda(deudaId, {
-      monto: Number(pagoMonto),
-      nota: pagoNota,
-    });
-    setPagoMonto("");
-    setPagoNota("");
-    setShowPagoForm(null);
-    loadDeudas();
-  };
-
-  const handleDeleteDeuda = async (id: string) => {
-    if (confirm("¿Eliminar este préstamo/deuda permanentemente?")) {
-      await deleteDeuda(id);
-      loadDeudas();
+    const parsedAmount = Number(amount);
+    if (parsedAmount <= 0 || description.trim().length < 2) {
+      toast.error("Ingresa un monto válido y una descripción");
+      return;
+    }
+    const success = await run(
+      () => createDebt(employeeId, { amount: parsedAmount, description: description.trim() }),
+      "Préstamo registrado",
+    );
+    if (success) {
+      setAmount("");
+      setDescription("");
+      setShowForm(false);
     }
   };
 
-  const handleDeletePago = async (deudaId: string, pagoId: string) => {
-    if (confirm("¿Eliminar este pago?")) {
-      await deletePagoFromDeuda(deudaId, pagoId);
-      loadDeudas();
+  const handleAddPayment = async (debtId: string) => {
+    const parsedAmount = Number(paymentAmount);
+    if (parsedAmount <= 0) {
+      toast.error("Ingresa un monto de abono válido");
+      return;
     }
+    const success = await run(
+      () =>
+        addDebtPayment(employeeId, debtId, {
+          amount: parsedAmount,
+          note: paymentNote.trim() || undefined,
+        }),
+      "Abono registrado",
+    );
+    if (success) {
+      setPaymentAmount("");
+      setPaymentNote("");
+      setPaymentDebtId(null);
+    }
+  };
+
+  const handleDeleteDebt = async (debtId: string) => {
+    if (!confirm("¿Deseas retirar esta deuda del historial activo?")) return;
+    await run(() => deleteDebt(employeeId, debtId), "Deuda retirada");
+  };
+
+  const handleDeletePayment = async (debtId: string, paymentId: string) => {
+    if (!confirm("¿Deseas eliminar este abono?")) return;
+    await run(
+      () => deleteDebtPayment(employeeId, debtId, paymentId),
+      "Abono eliminado",
+    );
   };
 
   return (
-    <div className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden shadow-md">
-      <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
+    <section className="overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950 shadow-md">
+      <header className="flex flex-col gap-4 border-b border-zinc-800 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
-          <h3 className="text-lg font-semibold font-serif text-zinc-100">Préstamos y Deudas</h3>
-          <p className="text-sm text-zinc-500 mt-1">Gestión de saldos a favor de la empresa para {employeeName}.</p>
+          <h2 className="font-serif text-lg font-semibold text-zinc-100">Préstamos y deudas</h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            Saldos a favor de la empresa correspondientes a {employeeName}.
+          </p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)} className="bg-brand-gold text-black hover:bg-brand-gold/80 rounded-full">
-          + Nuevo Préstamo
+        <Button
+          onClick={() => setShowForm((visible) => !visible)}
+          className="rounded-full bg-brand-gold text-black hover:bg-brand-gold/80"
+        >
+          Nuevo préstamo
         </Button>
-      </div>
+      </header>
 
       {showForm && (
-        <div className="p-6 bg-zinc-900/50 border-b border-zinc-800 flex gap-4 items-end">
-          <div className="flex-1">
-            <label className="text-xs text-zinc-400 block mb-1">Monto Total ($)</label>
-            <input
-              type="number"
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:border-brand-gold"
-              value={montoTotal}
-              onChange={(e) => setMontoTotal(e.target.value)}
-              placeholder="Ej: 5000"
-            />
-          </div>
-          <div className="flex-[2]">
-            <label className="text-xs text-zinc-400 block mb-1">Concepto / Descripción</label>
-            <input
-              type="text"
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-2 text-zinc-100 focus:outline-none focus:border-brand-gold"
-              value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
-              placeholder="Préstamo para pasajes..."
-            />
-          </div>
+        <div className="grid gap-4 border-b border-zinc-800 bg-zinc-900/50 p-5 sm:p-6 lg:grid-cols-[1fr_2fr_auto] lg:items-end">
+          <InputField
+            label="Monto total"
+            type="number"
+            value={amount}
+            onChange={setAmount}
+            placeholder="5000"
+          />
+          <InputField
+            label="Concepto o descripción"
+            value={description}
+            onChange={setDescription}
+            placeholder="Préstamo para pasajes"
+          />
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowForm(false)} className="border-zinc-700 hover:bg-zinc-800 text-zinc-300">
+            <Button variant="outline" onClick={() => setShowForm(false)} disabled={submitting}>
               Cancelar
             </Button>
-            <Button onClick={handleCreate} className="bg-brand-gold text-black hover:bg-brand-gold/80">
-              Guardar
-            </Button>
+            <Button onClick={handleCreate} disabled={submitting}>Guardar</Button>
           </div>
         </div>
       )}
 
-      <div className="p-6">
+      <div className="p-5 sm:p-6">
         {loading ? (
-          <p className="text-zinc-500 text-sm">Cargando...</p>
-        ) : deudas.length === 0 ? (
-          <p className="text-zinc-600 text-sm italic text-center py-4">No hay deudas activas para esta empleada.</p>
+          <p className="text-sm text-zinc-500">Cargando...</p>
+        ) : debts.length === 0 ? (
+          <p className="py-4 text-center text-sm italic text-zinc-600">
+            No hay deudas activas para esta empleada.
+          </p>
         ) : (
           <div className="space-y-6">
-            {deudas.map((deuda) => {
-              const totalPagado = (deuda.pagos || []).reduce((acc: number, p: any) => acc + (Number(p.monto) || 0), 0);
-              const saldoRestante = Number(deuda.monto_total) - totalPagado;
-              const isPagada = deuda.estado === "pagada" || saldoRestante <= 0;
-
+            {debts.map((debt) => {
+              const paid = debt.status === "paid" || debt.remainingAmount <= 0;
               return (
-                <div key={deuda._id} className={`border rounded-2xl p-6 ${isPagada ? "border-green-900/30 bg-green-900/5" : "border-zinc-800 bg-zinc-900/30"}`}>
-                  <div className="flex justify-between items-start mb-4">
+                <article
+                  key={debt.id}
+                  className={`rounded-2xl border p-4 sm:p-6 ${
+                    paid
+                      ? "border-green-900/30 bg-green-900/5"
+                      : "border-zinc-800 bg-zinc-900/30"
+                  }`}
+                >
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <h4 className="font-semibold text-zinc-200">{deuda.descripcion}</h4>
-                      <p className="text-xs text-zinc-500">{formatDateTime(deuda.createdAt)}</p>
+                      <h3 className="font-semibold text-zinc-200">{debt.description}</h3>
+                      <p className="text-xs text-zinc-500">{formatDateTime(debt.createdAt)}</p>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-between gap-4 sm:justify-end">
                       <div className="text-right">
-                        <p className="text-sm text-zinc-400">Total: {formatCurrency(deuda.monto_total)}</p>
-                        <p className={`font-bold text-lg ${isPagada ? "text-green-400" : "text-brand-gold"}`}>
-                          Resta: {formatCurrency(saldoRestante)}
+                        <p className="text-sm text-zinc-400">Total: {formatCurrency(debt.amount)}</p>
+                        <p className={`text-lg font-bold ${paid ? "text-green-400" : "text-brand-gold"}`}>
+                          Resta: {formatCurrency(debt.remainingAmount)}
                         </p>
                       </div>
-                      <button onClick={() => handleDeleteDeuda(deuda._id)} className="text-zinc-600 hover:text-red-400 text-xl">
-                        ×
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDebt(debt.id)}
+                        disabled={submitting}
+                        className="rounded-lg p-2 text-zinc-600 hover:bg-zinc-800 hover:text-red-400"
+                        aria-label={`Retirar deuda ${debt.description}`}
+                      >
+                        <Trash2 className="size-4" />
                       </button>
                     </div>
                   </div>
 
-                  {/* Lista de Pagos */}
-                  <div className="space-y-2 mt-4 pl-4 border-l-2 border-zinc-800">
-                    <h5 className="text-xs font-semibold text-zinc-500 uppercase">Historial de Pagos</h5>
-                    {deuda.pagos?.length > 0 ? (
-                      deuda.pagos.map((pago: any) => (
-                        <div key={pago.id} className="flex justify-between items-center text-sm text-zinc-400 bg-zinc-950/50 p-2 rounded-lg">
-                          <span>{formatDateTime(pago.fecha)} - {pago.nota || "Abono"}</span>
-                          <div className="flex items-center gap-3">
-                            <span className="font-medium text-green-400">+{formatCurrency(pago.monto)}</span>
-                            <button onClick={() => handleDeletePago(deuda._id, pago.id)} className="text-zinc-600 hover:text-red-400">×</button>
+                  <div className="mt-4 space-y-2 border-l-2 border-zinc-800 pl-4">
+                    <h4 className="text-xs font-semibold uppercase text-zinc-500">Historial de pagos</h4>
+                    {debt.payments.length > 0 ? (
+                      debt.payments.map((payment) => (
+                        <div key={payment.id} className="flex items-center justify-between gap-3 rounded-lg bg-zinc-950/50 p-2 text-sm text-zinc-400">
+                          <span>{formatDateTime(payment.createdAt)} - {payment.note || "Abono"}</span>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <span className="font-medium text-green-400">{formatCurrency(payment.amount)}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePayment(debt.id, payment.id)}
+                              disabled={submitting}
+                              className="p-1 text-zinc-600 hover:text-red-400"
+                              aria-label="Eliminar abono"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
                           </div>
                         </div>
                       ))
@@ -168,40 +221,74 @@ export default function DebtManager({ employeeId, employeeName }: Props) {
                     )}
                   </div>
 
-                  {!isPagada && (
-                    <div className="mt-4 pt-4 border-t border-zinc-800">
-                      {showPagoForm === deuda._id ? (
-                        <div className="flex gap-2">
-                          <input
+                  {!paid && (
+                    <div className="mt-4 border-t border-zinc-800 pt-4">
+                      {paymentDebtId === debt.id ? (
+                        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]">
+                          <InputField
+                            label="Monto"
                             type="number"
-                            className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:border-brand-gold"
-                            placeholder="Monto a abonar"
-                            value={pagoMonto}
-                            onChange={(e) => setPagoMonto(e.target.value)}
+                            value={paymentAmount}
+                            onChange={setPaymentAmount}
+                            placeholder="Monto del abono"
+                            compact
                           />
-                          <input
-                            type="text"
-                            className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:border-brand-gold"
-                            placeholder="Nota (opcional)"
-                            value={pagoNota}
-                            onChange={(e) => setPagoNota(e.target.value)}
+                          <InputField
+                            label="Nota"
+                            value={paymentNote}
+                            onChange={setPaymentNote}
+                            placeholder="Nota opcional"
+                            compact
                           />
-                          <Button size="sm" onClick={() => handleAddPago(deuda._id)} className="bg-green-600 text-white hover:bg-green-500">Abonar</Button>
-                          <Button size="sm" variant="ghost" onClick={() => setShowPagoForm(null)}>Cancelar</Button>
+                          <div className="flex items-end gap-2">
+                            <Button size="sm" onClick={() => handleAddPayment(debt.id)} disabled={submitting}>Abonar</Button>
+                            <Button size="sm" variant="ghost" onClick={() => setPaymentDebtId(null)}>Cancelar</Button>
+                          </div>
                         </div>
                       ) : (
-                        <Button size="sm" variant="outline" onClick={() => setShowPagoForm(deuda._id)} className="border-brand-gold/30 text-brand-gold hover:bg-brand-gold/10">
-                          + Registrar Abono
+                        <Button size="sm" variant="outline" onClick={() => setPaymentDebtId(debt.id)}>
+                          Registrar abono
                         </Button>
                       )}
                     </div>
                   )}
-                </div>
+                </article>
               );
             })}
           </div>
         )}
       </div>
-    </div>
+    </section>
+  );
+}
+
+function InputField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  compact = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  type?: "text" | "number";
+  compact?: boolean;
+}) {
+  return (
+    <label className="block text-xs text-zinc-400">
+      <span className={compact ? "sr-only" : "mb-1 block"}>{label}</span>
+      <input
+        type={type}
+        min={type === "number" ? "0.01" : undefined}
+        step={type === "number" ? "0.01" : undefined}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-brand-gold"
+      />
+    </label>
   );
 }

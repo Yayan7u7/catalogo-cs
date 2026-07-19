@@ -89,6 +89,12 @@ export type Service = {
   totalBase: string;
   totalExtras: string;
   totalFinal: string;
+  totalTransporte?: string;
+  customerTransportCharge?: number | null;
+  actualTransportCost?: number;
+  presetLocationId?: string | null;
+  locationNameSnapshot?: string | null;
+  locationAddressSnapshot?: string | null;
   horaInicioServicio: string | null;
   horaFinServicio: string | null;
   horaLlegadaCasa: string | null;
@@ -101,6 +107,10 @@ export type Service = {
   servicioPrevioId: string | null;
   horaInicioEstimada: string | null;
   createdAt: string;
+  calculationStatus: "provisional" | "ready" | "paid";
+  pendingReason: string | null;
+  customerTotal: number;
+  uberDeduction: number;
   updatedAt: string;
   estadoLiquidacion?: "transporte_pendiente" | "cerrada";
   viajes?: Trip[];
@@ -117,6 +127,10 @@ export type Trip = {
   proveedorTransporte: "interno" | "uber";
   tarifa: string | number;
   telegramUberFileId?: string | null;
+  driverPayout?: number;
+  fareConfirmedAt?: string | null;
+  fareConfirmationOverride?: boolean;
+  driverSettlementId?: string | null;
 };
 
 export type ConversationMessage = {
@@ -126,6 +140,26 @@ export type ConversationMessage = {
   emisor: "ia" | "jefe" | "cliente";
   mensaje: string;
   enviadoAt: string;
+};
+
+export type CashObligation = {
+  id: string;
+  serviceId: string;
+  employeeId: string;
+  amount: number;
+  paidAmount: number;
+  status: "pending" | "paid";
+  calculationStatus: "provisional" | "ready" | "paid";
+  pendingReason: string | null;
+  customerTotal: number;
+  uberDeduction: number;
+  createdAt: string;
+};
+
+export type CashObligationSummary = {
+  obligations: CashObligation[];
+  employees: Array<{ id: string; name: string }>;
+  total: number;
 };
 
 export type EmployeeReportCategory =

@@ -90,7 +90,10 @@ export async function createModeloAction(payload: ModeloPayload): Promise<Modelo
     linkX: payload.linkX || null,
     contactLabel: payload.contactLabel || null,
     fotosExtra: payload.fotos,
-    extras: payload.extras || [],
+    extras: (payload.extras || []).map((ext) => ({
+      nombre: ext.nombre,
+      precio: ext.precio,
+    })),
   };
 
   const data = await apiFetch<any>("/employees", {
@@ -118,7 +121,10 @@ export async function updateModeloAction(id: string, payload: ModeloPayload): Pr
     linkX: payload.linkX || null,
     contactLabel: payload.contactLabel || null,
     fotosExtra: payload.fotos,
-    extras: payload.extras || [],
+    extras: (payload.extras || []).map((ext) => ({
+      nombre: ext.nombre,
+      precio: ext.precio,
+    })),
   };
 
   const data = await apiFetch<any>(`/employees/${id}`, {

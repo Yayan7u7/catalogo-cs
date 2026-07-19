@@ -2,7 +2,7 @@
 
 import { apiFetch } from "@/lib/api-server";
 import { getCurrentUser } from "@/lib/auth";
-import type { ConversationMessage, Employee, Service } from "@/lib/types";
+import type { CashObligationSummary, ConversationMessage, Employee, Service } from "@/lib/types";
 
 async function requireJefe() {
   const user = await getCurrentUser();
@@ -21,6 +21,33 @@ export async function getJefeEmployees(): Promise<Employee[]> {
 export async function getJefeServices(): Promise<Service[]> {
   await requireJefe();
   return apiFetch<Service[]>("/services");
+}
+
+export async function getJefeCashObligations(): Promise<CashObligationSummary> {
+  await requireJefe();
+  return apiFetch<CashObligationSummary>("/transport-operations/cash-obligations");
+}
+
+export async function registerJefeCashPayment(employeeId: string, amount: number) {
+  try {
+    await assertAssignedEmployee(employeeId);
+    await apiFetch("/transport-operations/cash-payments", {
+      method: "POST",
+      body: JSON.stringify({ employeeId, amount, note: "Entrega registrada por el jefe" }),
+    });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "No se pudo registrar la entrega" };
+  }
+}
+
+export async function closeJefeCashObligation(obligationId: string) {
+  try {
+    await apiFetch(`/transport-operations/cash-obligations/${obligationId}/close`, { method: "POST" });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "No se pudo saldar el servicio" };
+  }
 }
 
 async function assertAssignedEmployee(employeeId: string) {
