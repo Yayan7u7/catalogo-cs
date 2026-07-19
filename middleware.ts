@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
     const token = request.cookies.get(COOKIE_NAME)?.value;
     const isValid = token ? await verifyToken(token) : null;
 
-    if (isValid) {
+    if (isValid && (isValid.user as { rol?: string } | undefined)?.rol === "admin") {
       // Si ya está autenticado y está en la raíz /admin, redirigir a /admin/modelos
       if (pathname === "/admin") {
         return NextResponse.redirect(new URL("/admin/modelos", request.url));
@@ -49,11 +49,27 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+
+  if (pathname.startsWith("/jefe")) {
+    const token = request.cookies.get(COOKIE_NAME)?.value;
+    const session = token ? await verifyToken(token) : null;
+    const role = (session?.user as { rol?: string } | undefined)?.rol;
+
+    if (!session) {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
+    if (role === "admin") {
+      return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+    }
+    if (role !== "jefe") {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
+  }
+
   return NextResponse.next();
 }
 
 // Configurar el matcher para interceptar la API y el panel de administración
 export const config = {
-  matcher: ["/api/:path*", "/admin/:path*"],
+  matcher: ["/api/:path*", "/admin/:path*", "/jefe/:path*"],
 };
-

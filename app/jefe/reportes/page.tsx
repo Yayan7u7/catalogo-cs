@@ -3,29 +3,26 @@ import ReportsDashboard from "@/components/employee-reports/reports-dashboard";
 import {
   getEmployeeReportDashboard,
   getEmployeeReports,
-  getReportAdmins,
 } from "@/lib/actions/employee-reports";
 import { getCurrentUser } from "@/lib/auth";
 
-export default async function ReportsPage() {
+export default async function JefeReportsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/admin");
-  if (user.rol === "jefe") redirect("/jefe/reportes");
-  if (user.rol !== "admin") redirect("/admin");
+  if (user.rol === "admin") redirect("/admin/reports");
+  if (user.rol !== "jefe") redirect("/admin");
 
-  const [reports, dashboard, admins] = await Promise.all([
+  const [reports, dashboard] = await Promise.all([
     getEmployeeReports({ page: 1, limit: 20 }),
     getEmployeeReportDashboard(),
-    getReportAdmins(),
   ]);
 
   return (
     <ReportsDashboard
-      role="admin"
+      role="jefe"
       initialReports={reports}
       initialSummary={dashboard.summary}
       initialTolerance={dashboard.tolerance}
-      admins={admins}
     />
   );
 }

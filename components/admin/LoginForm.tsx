@@ -11,7 +11,7 @@ const inputClass =
   "w-full bg-black/40 border border-zinc-800 text-white text-sm font-medium px-4 py-3.5 rounded-lg transition-all duration-300 focus:border-[#C5A55A]/60 focus:bg-black/60 focus:ring-4 focus:ring-[#C5A55A]/10 placeholder:text-zinc-600 focus:outline-none tracking-wide";
 
 interface LoginFormProps {
-  onSuccess: () => void;
+  onSuccess: (redirectTo: string) => void;
 }
 
 export default function LoginForm({ onSuccess }: LoginFormProps) {
@@ -33,7 +33,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       }
 
       toast.success("Bienvenido al panel");
-      onSuccess();
+      onSuccess(res.redirectTo || "/admin/dashboard");
     } catch (err: any) {
       setError(err.message);
     } finally {

@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
     const response = await fetch(backendUrl, {
       headers: {
         Accept: "text/event-stream",
+        "Cache-Control": "no-cache",
       },
       cache: "no-store",
     });
@@ -32,6 +33,7 @@ export async function GET(req: NextRequest) {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache, no-transform",
         "Connection": "keep-alive",
+        "X-Accel-Buffering": "no",
       },
     });
   } catch (error) {

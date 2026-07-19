@@ -1,14 +1,15 @@
 import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
+import type { AuthUser } from "@/lib/types";
 
 const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_key";
 const encodedSecret = new TextEncoder().encode(JWT_SECRET);
 
 export const COOKIE_NAME = "cs_admin_session";
 
-export async function createSessionCookie(accessToken: string) {
-  const token = await new SignJWT({ accessToken })
+export async function createSessionCookie(accessToken: string, user: AuthUser) {
+  const token = await new SignJWT({ accessToken, user })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d") // 1 semana
@@ -46,6 +47,11 @@ export async function getSessionPayload() {
 export async function getAccessToken(): Promise<string | undefined> {
   const payload = await getSessionPayload();
   return payload?.accessToken as string | undefined;
+}
+
+export async function getCurrentUser(): Promise<AuthUser | null> {
+  const payload = await getSessionPayload();
+  return (payload?.user as AuthUser | undefined) ?? null;
 }
 
 /**

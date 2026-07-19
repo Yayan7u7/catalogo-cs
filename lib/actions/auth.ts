@@ -17,9 +17,15 @@ export async function loginAction(email: string, password: string) {
     }
 
     // Guardamos el accessToken de NestJS en la cookie de sesion de Next.js
-    await createSessionCookie(token);
+    if (!data.user || !["admin", "jefe"].includes(data.user.rol)) {
+      return { success: false, error: "Tu cuenta no tiene acceso a este panel" };
+    }
+    await createSessionCookie(token, data.user);
 
-    return { success: true };
+    return {
+      success: true,
+      redirectTo: data.user.rol === "jefe" ? "/jefe" : "/admin/dashboard",
+    };
   } catch (error: any) {
     console.error("loginAction error:", error);
     return { success: false, error: error.message || "Error de conexión con el servidor de autenticación" };

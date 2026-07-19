@@ -35,7 +35,7 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
   const isLoginPage = pathname === "/admin";
 
   if (isLoginPage) {
-    return <LoginForm onSuccess={() => router.push("/admin/modelos")} />;
+    return <LoginForm onSuccess={(redirectTo) => router.push(redirectTo)} />;
   }
 
 

@@ -58,5 +58,18 @@ export async function apiFetch<T>(
     throw new Error(message);
   }
 
-  return response.json() as Promise<T>;
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  const responseText = await response.text();
+  if (!responseText.trim()) {
+    return undefined as T;
+  }
+
+  try {
+    return JSON.parse(responseText) as T;
+  } catch {
+    throw new Error("El backend devolvió una respuesta con formato inválido");
+  }
 }
