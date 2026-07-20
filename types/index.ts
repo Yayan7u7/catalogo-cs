@@ -19,6 +19,7 @@ export interface Modelo {
   disponible: boolean;
   precioBaseHora: number;
   jefeId?: string | null;
+  jefeSecundarioId?: string | null;
   apartmentId?: string | null;
   usuarioId?: string | null;
   trustScore?: number | null;
@@ -39,6 +40,7 @@ export interface ModeloPayload {
   disponible?: boolean;
   precioBaseHora: number;
   jefeId?: string | null;
+  jefeSecundarioId?: string | null;
   apartmentId?: string | null;
   extras?: ServiceExtra[];
 }

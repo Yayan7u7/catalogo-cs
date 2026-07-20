@@ -1,14 +1,15 @@
 import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
+import type { AuthUser } from "@/lib/types";
 
 const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_key";
 const encodedSecret = new TextEncoder().encode(JWT_SECRET);
 
 export const COOKIE_NAME = "cs_admin_session";
 
-export async function createSessionCookie(accessToken: string) {
-  const token = await new SignJWT({ accessToken })
+export async function createSessionCookie(accessToken: string, user: AuthUser) {
+  const token = await new SignJWT({ accessToken, user })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d") // 1 semana
@@ -38,7 +39,7 @@ export async function getSessionPayload() {
   try {
     const { payload } = await jwtVerify(token, encodedSecret);
     return payload;
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -46,6 +47,11 @@ export async function getSessionPayload() {
 export async function getAccessToken(): Promise<string | undefined> {
   const payload = await getSessionPayload();
   return payload?.accessToken as string | undefined;
+}
+
+export async function getCurrentUser(): Promise<AuthUser | null> {
+  const payload = await getSessionPayload();
+  return (payload?.user as AuthUser | undefined) ?? null;
 }
 
 /**
@@ -66,7 +72,22 @@ export async function verifyToken(token: string) {
   try {
     const { payload } = await jwtVerify(token, encodedSecret);
     return payload;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
+
+export function isRedirectError(error: unknown): boolean {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    typeof (error as { digest: unknown }).digest === "string" &&
+    ((error as { digest: string }).digest.startsWith("NEXT_REDIRECT") ||
+      (error as { digest: string }).digest.startsWith("NEXT_NOT_FOUND"))
+  ) {
+    return true;
+  }
+  return false;
+}
+

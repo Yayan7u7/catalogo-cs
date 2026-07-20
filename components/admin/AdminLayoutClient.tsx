@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import LoginForm from "@/components/admin/LoginForm";
-import { logoutAction } from "@/app/actions/auth";
+import { logoutAction } from "@/lib/actions/auth";
 
 
 interface AdminLayoutClientProps {
@@ -17,6 +17,7 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
 
   const handleSignOut = async () => {
     try {
@@ -34,7 +35,7 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
   const isLoginPage = pathname === "/admin";
 
   if (isLoginPage) {
-    return <LoginForm onSuccess={() => router.push("/admin/modelos")} />;
+    return <LoginForm onSuccess={(redirectTo) => router.push(redirectTo)} />;
   }
 
 
@@ -50,7 +51,17 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
             Panel Admin
           </p>
         </div>
-        <nav className="flex-1 py-8 flex flex-col gap-2 px-4">
+        <nav className="flex-1 py-8 flex flex-col gap-2 px-4 overflow-y-auto">
+          <Link
+            href="/admin/dashboard"
+            className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
+              isActive("/admin/dashboard")
+                ? "text-black bg-[#C5A55A]"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
+            }`}
+          >
+            Dashboard
+          </Link>
           <Link
             href="/admin/modelos"
             className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
@@ -81,6 +92,97 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
           >
             Choferes
           </Link>
+          <Link
+            href="/admin/services"
+            className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
+              isActive("/admin/services")
+                ? "text-black bg-[#C5A55A]"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
+            }`}
+          >
+            Servicios
+          </Link>
+          <Link
+            href="/admin/map"
+            className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
+              isActive("/admin/map")
+                ? "text-black bg-[#C5A55A]"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
+            }`}
+          >
+            Mapa en Vivo
+          </Link>
+          <Link
+            href="/admin/liquidations"
+            className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
+              isActive("/admin/liquidations")
+                ? "text-black bg-[#C5A55A]"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
+            }`}
+          >
+            Liquidaciones
+          </Link>
+          <Link
+            href="/admin/transport"
+            className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
+              isActive("/admin/transport")
+                ? "text-black bg-[#C5A55A]"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
+            }`}
+          >
+            Transporte
+          </Link>
+          <Link
+            href="/admin/reports"
+            className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
+              isActive("/admin/reports")
+                ? "text-black bg-[#C5A55A]"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
+            }`}
+          >
+            Reportes
+          </Link>
+          {/* <Link
+            href="/admin/alerts"
+            className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
+              isActive("/admin/alerts")
+                ? "text-black bg-[#C5A55A]"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
+            }`}
+          >
+            Alertas
+          </Link>
+          <Link
+            href="/admin/catalog"
+            className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
+              isActive("/admin/catalog")
+                ? "text-black bg-[#C5A55A]"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
+            }`}
+          >
+            Catálogo Web
+          </Link>
+          <Link
+            href="/admin/chat-monitor"
+            className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
+              isActive("/admin/chat-monitor")
+                ? "text-black bg-[#C5A55A]"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
+            }`}
+          >
+            Chat Monitor
+          </Link>
+          <Link
+            href="/admin/sentiment-alerts"
+            className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
+              isActive("/admin/sentiment-alerts")
+                ? "text-black bg-[#C5A55A]"
+                : "text-zinc-400 hover:text-white hover:bg-zinc-900/50"
+            }`}
+          >
+            Alertas Sentimiento
+          </Link> */}
+
         </nav>
         <div className="p-4 border-t border-zinc-800">
           <p className="text-[10px] text-zinc-500 mb-3 px-2 truncate text-center">
@@ -118,8 +220,19 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="md:hidden fixed top-16 inset-x-0 bg-[#050505] border-b border-zinc-800 z-30 py-4 px-4 flex flex-col gap-2 shadow-2xl"
+            className="md:hidden fixed top-16 inset-x-0 bg-[#050505] border-b border-zinc-800 z-30 py-4 px-4 flex flex-col gap-2 shadow-2xl max-h-[calc(100vh-4rem)] overflow-y-auto"
           >
+            <Link
+              href="/admin/dashboard"
+              onClick={() => setMenuOpen(false)}
+              className={`px-4 py-3 text-left text-xs font-bold tracking-widest uppercase transition-colors duration-300 ${
+                isActive("/admin/dashboard")
+                  ? "text-[#C5A55A] bg-zinc-900/50"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Dashboard
+            </Link>
             <Link
               href="/admin/modelos"
               onClick={() => setMenuOpen(false)}
@@ -153,6 +266,106 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
             >
               Choferes
             </Link>
+            <Link
+              href="/admin/services"
+              onClick={() => setMenuOpen(false)}
+              className={`px-4 py-3 text-left text-xs font-bold tracking-widest uppercase transition-colors duration-300 ${
+                isActive("/admin/services")
+                  ? "text-[#C5A55A] bg-zinc-900/50"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Servicios
+            </Link>
+            <Link
+              href="/admin/map"
+              onClick={() => setMenuOpen(false)}
+              className={`px-4 py-3 text-left text-xs font-bold tracking-widest uppercase transition-colors duration-300 ${
+                isActive("/admin/map")
+                  ? "text-[#C5A55A] bg-zinc-900/50"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Mapa en Vivo
+            </Link>
+            <Link
+              href="/admin/liquidations"
+              onClick={() => setMenuOpen(false)}
+              className={`px-4 py-3 text-left text-xs font-bold tracking-widest uppercase transition-colors duration-300 ${
+                isActive("/admin/liquidations")
+                  ? "text-[#C5A55A] bg-zinc-900/50"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Liquidaciones
+            </Link>
+            <Link
+              href="/admin/transport"
+              onClick={() => setMenuOpen(false)}
+              className={`px-4 py-3 text-left text-xs font-bold tracking-widest uppercase transition-colors duration-300 ${
+                isActive("/admin/transport")
+                  ? "text-[#C5A55A] bg-zinc-900/50"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Transporte
+            </Link>
+            <Link
+              href="/admin/reports"
+              onClick={() => setMenuOpen(false)}
+              className={`px-4 py-3 text-left text-xs font-bold tracking-widest uppercase transition-colors duration-300 ${
+                isActive("/admin/reports")
+                  ? "text-[#C5A55A] bg-zinc-900/50"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Reportes
+            </Link>
+            <Link
+              href="/admin/alerts"
+              onClick={() => setMenuOpen(false)}
+              className={`px-4 py-3 text-left text-xs font-bold tracking-widest uppercase transition-colors duration-300 ${
+                isActive("/admin/alerts")
+                  ? "text-[#C5A55A] bg-zinc-900/50"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Alertas
+            </Link>
+            <Link
+              href="/admin/catalog"
+              onClick={() => setMenuOpen(false)}
+              className={`px-4 py-3 text-left text-xs font-bold tracking-widest uppercase transition-colors duration-300 ${
+                isActive("/admin/catalog")
+                  ? "text-[#C5A55A] bg-zinc-900/50"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Catálogo Web
+            </Link>
+            <Link
+              href="/admin/chat-monitor"
+              onClick={() => setMenuOpen(false)}
+              className={`px-4 py-3 text-left text-xs font-bold tracking-widest uppercase transition-colors duration-300 ${
+                isActive("/admin/chat-monitor")
+                  ? "text-[#C5A55A] bg-zinc-900/50"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Chat Monitor
+            </Link>
+            <Link
+              href="/admin/sentiment-alerts"
+              onClick={() => setMenuOpen(false)}
+              className={`px-4 py-3 text-left text-xs font-bold tracking-widest uppercase transition-colors duration-300 ${
+                isActive("/admin/sentiment-alerts")
+                  ? "text-[#C5A55A] bg-zinc-900/50"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Alertas Sentimiento
+            </Link>
+
             <div className="mt-2 pt-2 border-t border-zinc-800">
               <button
                 onClick={() => {
@@ -170,7 +383,9 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto bg-black pt-16 md:pt-0">
-        {children}
+        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+          {children}
+        </div>
       </main>
     </div>
   );

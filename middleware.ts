@@ -19,33 +19,61 @@ export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   // Redirigir/Reescribir las peticiones de /api/:path* hacia el backend de NestJS
-  if (pathname.startsWith("/api/")) {
+  if (
+    pathname.startsWith("/api/") &&
+    !pathname.startsWith("/api/assistant") &&
+    !pathname.startsWith("/api/auth") &&
+    !pathname.startsWith("/api/realtime")
+  ) {
     const backendUrl = process.env.BACKEND_API_URL || "http://localhost:4000";
-    
-    // Obtenemos el path después de /api
     const apiPath = pathname.replace(/^\/api/, "");
-    
-    // Creamos la nueva URL apuntando al backend
     const targetUrl = new URL(`${apiPath}${search}`, backendUrl);
-    
     return NextResponse.rewrite(targetUrl);
   }
 
   // Protección de rutas de administración
   if (pathname.startsWith("/admin")) {
     const token = request.cookies.get(COOKIE_NAME)?.value;
-    const isValid = token ? await verifyToken(token) : null;
+    const session = token ? await verifyToken(token) : null;
+    const role = (session?.user as { rol?: string } | undefined)?.rol;
 
-    if (isValid) {
-      // Si ya está autenticado y está en la raíz /admin, redirigir a /admin/modelos
+    if (session && role === "admin") {
       if (pathname === "/admin") {
         return NextResponse.redirect(new URL("/admin/modelos", request.url));
       }
-    } else {
-      // Si no está autenticado y está en una subruta de /admin, redirigir a /admin
-      if (pathname !== "/admin") {
-        return NextResponse.redirect(new URL("/admin", request.url));
+    } else if (session && role === "jefe") {
+      if (pathname === "/admin") {
+        return NextResponse.redirect(new URL("/jefe", request.url));
       }
+    } else {
+      if (pathname !== "/admin") {
+        const response = NextResponse.redirect(new URL("/admin", request.url));
+        if (token) {
+          response.cookies.delete(COOKIE_NAME);
+        }
+        return response;
+      }
+    }
+  }
+
+  if (pathname.startsWith("/jefe")) {
+    const token = request.cookies.get(COOKIE_NAME)?.value;
+    const session = token ? await verifyToken(token) : null;
+    const role = (session?.user as { rol?: string } | undefined)?.rol;
+
+    if (!session) {
+      const response = NextResponse.redirect(new URL("/admin", request.url));
+      if (token) {
+        response.cookies.delete(COOKIE_NAME);
+      }
+      return response;
+    }
+    if (role === "admin") {
+      return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+    }
+    if (role !== "jefe") {
+      const response = NextResponse.redirect(new URL("/admin", request.url));
+      return response;
     }
   }
 
@@ -54,6 +82,5 @@ export async function middleware(request: NextRequest) {
 
 // Configurar el matcher para interceptar la API y el panel de administración
 export const config = {
-  matcher: ["/api/:path*", "/admin/:path*"],
+  matcher: ["/api/:path*", "/admin/:path*", "/jefe/:path*"],
 };
-

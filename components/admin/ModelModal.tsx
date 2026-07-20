@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import imageCompression from "browser-image-compression";
 import type { Modelo, ModeloPayload } from "@/types";
 
-import { uploadImageAction, deleteImageAction } from "@/app/actions/upload";
+import { uploadImagesAction, deleteImageAction } from "@/lib/actions/upload";
 import InputField from "../ui/InputField";
 import TextareaField from "../ui/TextareaField";
 import SelectField from "../ui/SelectField";
@@ -48,6 +48,7 @@ export default function ModelModal({
           disponible: modelo.disponible,
           precioBaseHora: modelo.precioBaseHora,
           jefeId: modelo.jefeId,
+          jefeSecundarioId: modelo.jefeSecundarioId,
           apartmentId: modelo.apartmentId,
           extras: modelo.extras ? [...modelo.extras] : [],
         }
@@ -63,13 +64,44 @@ export default function ModelModal({
           disponible: true,
           precioBaseHora: 100,
           jefeId: "",
+          jefeSecundarioId: "",
           apartmentId: "",
           extras: [],
         }
   );
 
+  // Estados locales para manejo de archivos locales y previsualizaciones antes de subir a R2
+  const [fotoPrincipalFile, setFotoPrincipalFile] = useState<File | null>(null);
+  const [fotoPrincipalPreview, setFotoPrincipalPreview] = useState<string>(modelo?.fotoPrincipal || "");
+
+  interface GalleryItem {
+    id: string;
+    type: "url" | "file";
+    url?: string;
+    file?: File;
+    preview?: string;
+  }
+
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>(
+    modelo?.fotos.map((url, i) => ({ id: `url-${i}-${url}`, type: "url" as const, url })) || []
+  );
+
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Limpiar URLs de objetos de tipo file al desmontar el componente para evitar fugas de memoria
+  useEffect(() => {
+    return () => {
+      if (fotoPrincipalPreview && fotoPrincipalPreview.startsWith("blob:")) {
+        URL.revokeObjectURL(fotoPrincipalPreview);
+      }
+      galleryItems.forEach((item) => {
+        if (item.type === "file" && item.preview) {
+          URL.revokeObjectURL(item.preview);
+        }
+      });
+    };
+  }, [fotoPrincipalPreview, galleryItems]);
 
   // Helper para comprimir imagen
   const compressImage = async (file: File) => {
@@ -80,79 +112,54 @@ export default function ModelModal({
     });
   };
 
-  // Helper para subir a R2 usando Server Action
-  const uploadToR2 = async (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    return await uploadImageAction(formData);
-  };
-
-  // Helper para eliminar de R2 usando Server Action
-  const deleteFromR2 = async (url: string) => {
-    try {
-      await deleteImageAction(url);
-    } catch (error) {
-      console.error("Error al eliminar imagen antigua:", error);
-    }
-  };
-
-  const handleUploadPrincipal = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadPrincipal = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(true);
-    try {
-      const compressed = await compressImage(file);
-      const url = await uploadToR2(compressed);
-      
-      // Si habia una foto principal anterior y no esta en la galeria, intentar borrarla
-      // Para simplificar, en este ejemplo asumimos que R2 maneja la basura o que no se borran automaticamente 
-      // desde el UI para evitar romper fotos compartidas. Opcional: invocar deleteFromR2.
-
-      setForm((prev) => ({ ...prev, fotoPrincipal: url }));
-      showNotification("Foto principal subida con exito", "success");
-    } catch (error: any) {
-      showNotification(error.message, "error");
-    } finally {
-      setUploading(false);
+    if (fotoPrincipalPreview && fotoPrincipalPreview.startsWith("blob:")) {
+      URL.revokeObjectURL(fotoPrincipalPreview);
     }
+
+    setFotoPrincipalFile(file);
+    setFotoPrincipalPreview(URL.createObjectURL(file));
   };
 
-  const handleUploadGaleria = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadGaleria = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    if (form.fotos.length + files.length > 5) {
+    if (galleryItems.length + files.length > 5) {
       showNotification("No puedes subir mas de 5 fotos a la galeria", "error");
       return;
     }
 
-    setUploading(true);
-    try {
-      const urls: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const compressed = await compressImage(files[i]);
-        const url = await uploadToR2(compressed);
-        urls.push(url);
-      }
-      setForm((prev) => ({ ...prev, fotos: [...prev.fotos, ...urls] }));
-      showNotification(`${urls.length} foto(s) subida(s) con exito`, "success");
-    } catch (error: any) {
-      showNotification(error.message, "error");
-    } finally {
-      setUploading(false);
+    const newItems: GalleryItem[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const preview = URL.createObjectURL(file);
+      newItems.push({
+        id: `file-${Date.now()}-${i}`,
+        type: "file",
+        file,
+        preview,
+      });
     }
+
+    setGalleryItems((prev) => [...prev, ...newItems]);
   };
 
   const removeFotoGaleria = (index: number) => {
-    const fotoToRemove = form.fotos[index];
-    // Opcional: deleteFromR2(fotoToRemove);
-    setForm((prev) => {
-      const newFotos = [...prev.fotos];
-      newFotos.splice(index, 1);
-      return { ...prev, fotos: newFotos };
+    setGalleryItems((prev) => {
+      const copy = [...prev];
+      const item = copy[index];
+      if (item.type === "file" && item.preview) {
+        URL.revokeObjectURL(item.preview);
+      }
+      copy.splice(index, 1);
+      return copy;
     });
   };
+
   const addExtra = () => {
     if (!newExtraNombre.trim()) {
       showNotification("El nombre del servicio extra no puede estar vacío.", "error");
@@ -195,17 +202,63 @@ export default function ModelModal({
       showNotification("El nombre real y el artistico son obligatorios.", "error");
       return;
     }
-    if (!form.fotoPrincipal) {
+    if (!fotoPrincipalPreview) {
       showNotification("La foto principal es obligatoria.", "error");
       return;
     }
 
     setSaving(true);
     try {
-      await onSave(form, modelo?._id);
+      const filesToUpload: File[] = [];
+      let principalUploadIndex = -1;
+
+      if (fotoPrincipalFile) {
+        filesToUpload.push(fotoPrincipalFile);
+        principalUploadIndex = 0;
+      }
+
+      galleryItems.forEach((item) => {
+        if (item.type === "file" && item.file) {
+          filesToUpload.push(item.file);
+        }
+      });
+
+      let uploadedUrls: string[] = [];
+      if (filesToUpload.length > 0) {
+        const formData = new FormData();
+        for (const file of filesToUpload) {
+          const compressed = await compressImage(file);
+          formData.append("files", compressed);
+        }
+        uploadedUrls = await uploadImagesAction(formData);
+      }
+
+      let finalFotoPrincipal = form.fotoPrincipal;
+      if (principalUploadIndex !== -1) {
+        finalFotoPrincipal = uploadedUrls[principalUploadIndex];
+      }
+
+      let uploadCounter = principalUploadIndex !== -1 ? 1 : 0;
+      const finalFotos: string[] = [];
+      for (const item of galleryItems) {
+        if (item.type === "file" && item.file) {
+          finalFotos.push(uploadedUrls[uploadCounter]);
+          uploadCounter++;
+        } else if (item.type === "url" && item.url) {
+          finalFotos.push(item.url);
+        }
+      }
+
+      const updatedForm: ModeloPayload = {
+        ...form,
+        fotoPrincipal: finalFotoPrincipal,
+        fotos: finalFotos,
+      };
+
+      await onSave(updatedForm, modelo?._id);
       onClose();
     } catch (error: any) {
-      // El error ya se maneja en onSave
+      showNotification(error.message || "Error al procesar y guardar el perfil.", "error");
     } finally {
       setSaving(false);
     }
@@ -279,18 +332,6 @@ export default function ModelModal({
               />
 
               <div className="grid grid-cols-2 gap-4">
-                <InputField
-                  label="Tarifa por Hora (MXN)"
-                  type="number"
-                  value={form.precioBaseHora}
-                  onChange={(e) => setForm({ ...form, precioBaseHora: parseFloat(e.target.value) || 0 })}
-                  placeholder="Ej: 100"
-                  required
-                  min={0}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <SelectField
                   label="Jefe Asignado"
                   value={form.jefeId || ""}
@@ -301,6 +342,18 @@ export default function ModelModal({
                   ]}
                 />
                 <SelectField
+                  label="Jefe Secundario"
+                  value={form.jefeSecundarioId || ""}
+                  onChange={(e) => setForm({ ...form, jefeSecundarioId: e.target.value || null })}
+                  options={[
+                    { value: "", label: "Ninguno" },
+                    ...jefes.map((j) => ({ value: j.id, label: j.email })),
+                  ]}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <SelectField
                   label="Departamento/Apartamento"
                   value={form.apartmentId || ""}
                   onChange={(e) => setForm({ ...form, apartmentId: e.target.value || null })}
@@ -308,6 +361,15 @@ export default function ModelModal({
                     { value: "", label: "Ninguno" },
                     ...apartments.map((a) => ({ value: a.id, label: a.name })),
                   ]}
+                />
+                <InputField
+                  label="Tarifa por Hora (MXN)"
+                  type="number"
+                  value={form.precioBaseHora}
+                  onChange={(e) => setForm({ ...form, precioBaseHora: parseFloat(e.target.value) || 0 })}
+                  placeholder="Ej: 100"
+                  required
+                  min={0}
                 />
               </div>
 
@@ -435,8 +497,8 @@ export default function ModelModal({
                 </label>
                 <div className="flex gap-4 items-start">
                   <div className="w-28 h-36 bg-zinc-900 border border-zinc-800 relative flex-shrink-0 flex items-center justify-center overflow-hidden">
-                    {form.fotoPrincipal ? (
-                      <Image src={form.fotoPrincipal} alt="Principal" fill className="object-cover" unoptimized />
+                    {fotoPrincipalPreview ? (
+                      <Image src={fotoPrincipalPreview} alt="Principal" fill className="object-cover" unoptimized />
                     ) : (
                       <span className="text-[10px] text-zinc-600 font-bold uppercase">Vacia</span>
                     )}
@@ -444,12 +506,12 @@ export default function ModelModal({
                   <div className="flex-1">
                     <div className="relative overflow-hidden inline-block">
                       <button type="button" className="bg-zinc-900 border border-zinc-700 hover:border-[#C5A55A] text-xs font-semibold px-4 py-2 uppercase tracking-wider transition-colors disabled:opacity-50">
-                        {uploading ? "Subiendo..." : "Cambiar Foto"}
+                        Cambiar Foto
                       </button>
                       <input
                         type="file"
                         accept="image/*"
-                        disabled={uploading}
+                        disabled={saving}
                         onChange={handleUploadPrincipal}
                         className="absolute inset-0 opacity-0 cursor-pointer"
                       />
@@ -465,9 +527,9 @@ export default function ModelModal({
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-[10px] font-bold tracking-widest text-[#C5A55A] uppercase">
-                    Galeria ({form.fotos.length}/5)
+                    Galeria ({galleryItems.length}/5)
                   </label>
-                  {form.fotos.length < 5 && (
+                  {galleryItems.length < 5 && (
                     <div className="relative overflow-hidden">
                       <button type="button" className="text-[10px] text-white hover:text-[#C5A55A] font-bold uppercase tracking-wider transition-colors disabled:opacity-50">
                         + Anadir Fotos
@@ -476,7 +538,7 @@ export default function ModelModal({
                         type="file"
                         accept="image/*"
                         multiple
-                        disabled={uploading || form.fotos.length >= 5}
+                        disabled={saving || galleryItems.length >= 5}
                         onChange={handleUploadGaleria}
                         className="absolute inset-0 opacity-0 cursor-pointer"
                       />
@@ -484,30 +546,33 @@ export default function ModelModal({
                   )}
                 </div>
 
-                {form.fotos.length > 0 ? (
+                {galleryItems.length > 0 ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                     <AnimatePresence>
-                      {form.fotos.map((url, i) => (
-                        <motion.div
-                          key={url}
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.8 }}
-                          className="aspect-[3/4] relative border border-zinc-800 group"
-                        >
-                          <Image src={url} alt={`Galeria ${i}`} fill className="object-cover" unoptimized />
-                          <button
-                            type="button"
-                            onClick={() => removeFotoGaleria(i)}
-                            className="absolute top-1 right-1 bg-black/80 text-white p-1 rounded hover:bg-red-900/80 transition-colors opacity-0 group-hover:opacity-100"
+                      {galleryItems.map((item, i) => {
+                        const src = item.type === "url" ? item.url! : item.preview!;
+                        return (
+                          <motion.div
+                            key={item.id}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            className="aspect-[3/4] relative border border-zinc-800 group"
                           >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <line x1="18" y1="6" x2="6" y2="18" />
-                              <line x1="6" y1="6" x2="18" y2="18" />
-                            </svg>
-                          </button>
-                        </motion.div>
-                      ))}
+                            <Image src={src} alt={`Galeria ${i}`} fill className="object-cover" unoptimized />
+                            <button
+                              type="button"
+                              onClick={() => removeFotoGaleria(i)}
+                              className="absolute top-1 right-1 bg-black/80 text-white p-1 rounded hover:bg-red-900/80 transition-colors opacity-0 group-hover:opacity-100"
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                              </svg>
+                            </button>
+                          </motion.div>
+                        );
+                      })}
                     </AnimatePresence>
                   </div>
                 ) : (
