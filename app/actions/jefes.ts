@@ -1,20 +1,24 @@
 "use server";
 
 import { getAccessToken } from "@/lib/auth";
+import { getStaffTrustScores } from "@/lib/staff-reliability";
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL || "http://localhost:4000";
 
-export async function getJefesAction(): Promise<{ id: string; email: string; nombre?: string | null; apellido?: string | null }[]> {
+export async function getJefesAction(): Promise<{ id: string; email: string; nombre?: string | null; apellido?: string | null; trustScore?: number | null }[]> {
   try {
     const token = await getAccessToken();
     if (!token) throw new Error("No autorizado");
 
-    const res = await fetch(`${BACKEND_API_URL}/users?rol=jefe`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const [res, trustScores] = await Promise.all([
+      fetch(`${BACKEND_API_URL}/users?rol=jefe`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }),
+      getStaffTrustScores(BACKEND_API_URL, token),
+    ]);
 
     if (!res.ok) throw new Error("Error al obtener usuarios");
     const users = await res.json();
@@ -23,6 +27,7 @@ export async function getJefesAction(): Promise<{ id: string; email: string; nom
       email: u.email,
       nombre: u.nombre,
       apellido: u.apellido,
+      trustScore: trustScores[u.id] ?? null,
     }));
   } catch (error) {
     console.error("getJefesAction error:", error);

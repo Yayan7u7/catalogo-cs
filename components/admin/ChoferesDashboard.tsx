@@ -14,6 +14,7 @@ import ConfirmDialog from "../ui/ConfirmDialog";
 import InputField from "../ui/InputField";
 import SearchBar from "../ui/SearchBar";
 import CreateButton from "../ui/CreateButton";
+import ReliabilityRating from "../ui/ReliabilityRating";
 
 interface Chofer {
   id: string;
@@ -25,6 +26,7 @@ interface Chofer {
   vehiculoModelo?: string;
   vehiculoColor?: string;
   vehiculoPlaca?: string;
+  trustScore?: number | null;
 }
 
 const formatPhoneNumber = (value: string): string => {
@@ -358,8 +360,8 @@ export default function ChoferesDashboard({ initialChoferes }: ChoferesDashboard
           </p>
         </div>
       ) : (
-        <div className="border border-zinc-800/80 bg-zinc-950/40 rounded-xl overflow-hidden">
-          <table className="w-full text-left border-collapse">
+        <div className="border border-zinc-800/80 bg-zinc-950/40 rounded-xl overflow-x-auto">
+          <table className="w-full min-w-[1050px] text-left border-collapse">
             <thead>
               <tr className="border-b border-zinc-800 bg-zinc-900/30">
                 <th className="px-6 py-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
@@ -370,6 +372,9 @@ export default function ChoferesDashboard({ initialChoferes }: ChoferesDashboard
                 </th>
                 <th className="px-6 py-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
                   Correo Electronico
+                </th>
+                <th className="px-6 py-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+                  Confiabilidad
                 </th>
                 <th className="px-6 py-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
                   Telegram OTP
@@ -390,6 +395,9 @@ export default function ChoferesDashboard({ initialChoferes }: ChoferesDashboard
                   </td>
                   <td className="px-6 py-4 text-sm font-medium text-zinc-300">
                     {chofer.email}
+                  </td>
+                  <td className="px-6 py-4">
+                    <ReliabilityRating score={chofer.trustScore} compact />
                   </td>
                   <td className="px-6 py-4 text-sm font-medium">
                     {otpCodes[chofer.usuarioId] ? (

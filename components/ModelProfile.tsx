@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import type { Modelo } from "@/types";
+import ReliabilityRating from "@/components/ui/ReliabilityRating";
 
 interface ModelProfileProps {
   modelo: Modelo;
@@ -151,6 +152,7 @@ export default function ModelProfile({ modelo, onClose }: ModelProfileProps) {
             <h2 className="font-heading text-3xl sm:text-4xl font-semibold text-white tracking-wide mb-2 pr-10">
               {modelo.nombre}
             </h2>
+            <ReliabilityRating score={modelo.trustScore} className="mb-5" />
             <div className="w-12 h-px bg-[#C5A55A]/60 mb-6" />
 
             {/* Descripcion con whitespace-pre-wrap para respetar saltos de linea */}

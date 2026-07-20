@@ -21,6 +21,7 @@ export interface Modelo {
   jefeId?: string | null;
   apartmentId?: string | null;
   usuarioId?: string | null;
+  trustScore?: number | null;
   createdAt?: string;
   updatedAt?: string;
   extras?: ServiceExtra[];
