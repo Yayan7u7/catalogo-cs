@@ -7,7 +7,7 @@ import ModelGrid from "@/components/ModelGrid";
 import ModelProfile from "@/components/ModelProfile";
 import Footer from "@/components/Footer";
 import { AnimateIn } from "@/components/AnimateIn";
-import { getModelos } from "@/lib/api";
+import { getCatalogModelosAction as getModelos } from "@/lib/actions/modelos";
 import type { Modelo } from "@/types";
 
 export default function Home() {

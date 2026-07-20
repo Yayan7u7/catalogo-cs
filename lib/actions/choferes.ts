@@ -1,8 +1,7 @@
 "use server";
 
-import { getAccessToken } from "@/lib/auth";
-
-const BACKEND_API_URL = process.env.BACKEND_API_URL || "http://localhost:4000";
+import { apiFetch } from "@/lib/api-server";
+import { isRedirectError } from "@/lib/auth";
 
 export async function getChoferesAction(): Promise<
   {
@@ -18,18 +17,9 @@ export async function getChoferesAction(): Promise<
   }[]
 > {
   try {
-    const token = await getAccessToken();
-    if (!token) throw new Error("No autorizado");
-
-    const res = await fetch(`${BACKEND_API_URL}/drivers`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+    const drivers = await apiFetch<any[]>("/drivers", {
+      authenticated: true,
     });
-
-    if (!res.ok) throw new Error("Error al obtener choferes");
-    const drivers = await res.json();
     return drivers.map((d: any) => ({
       id: d.id,
       nombre: d.nombre,
@@ -42,6 +32,7 @@ export async function getChoferesAction(): Promise<
       vehiculoPlaca: d.vehiculoPlaca || "",
     }));
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     console.error("getChoferesAction error:", error);
     return [];
   }
@@ -56,17 +47,10 @@ export async function createChoferAction(
   vehiculoModelo?: string,
   vehiculoColor?: string,
   vehiculoPlaca?: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    const token = await getAccessToken();
-    if (!token) throw new Error("No autorizado");
-
-    const res = await fetch(`${BACKEND_API_URL}/drivers`, {
+    const res = await apiFetch<any>("/drivers", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
       body: JSON.stringify({
         nombre,
         telefono,
@@ -77,15 +61,25 @@ export async function createChoferAction(
         vehiculoColor: vehiculoColor || null,
         vehiculoPlaca: vehiculoPlaca || null,
       }),
+      authenticated: true,
     });
 
-    if (!res.ok) {
-      const err = await res.json();
-      return { success: false, error: err.message || "Error al crear el chofer" };
-    }
-
-    return { success: true };
+    return {
+      success: true,
+      data: {
+        id: res.id,
+        nombre: res.nombre,
+        telefono: res.telefono,
+        email: res.usuario?.email || email,
+        usuarioId: res.usuarioId,
+        vehiculoMarca: res.vehiculoMarca || "",
+        vehiculoModelo: res.vehiculoModelo || "",
+        vehiculoColor: res.vehiculoColor || "",
+        vehiculoPlaca: res.vehiculoPlaca || "",
+      },
+    };
   } catch (error: any) {
+    if (isRedirectError(error)) throw error;
     console.error("createChoferAction error:", error);
     return { success: false, error: error.message || "Error de conexion con el servidor" };
   }
@@ -103,9 +97,6 @@ export async function updateChoferAction(
   vehiculoPlaca?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const token = await getAccessToken();
-    if (!token) throw new Error("No autorizado");
-
     const body: any = {
       nombre,
       telefono,
@@ -119,22 +110,15 @@ export async function updateChoferAction(
       body.password = password;
     }
 
-    const res = await fetch(`${BACKEND_API_URL}/drivers/${id}`, {
+    await apiFetch(`/drivers/${id}`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
       body: JSON.stringify(body),
+      authenticated: true,
     });
-
-    if (!res.ok) {
-      const err = await res.json();
-      return { success: false, error: err.message || "Error al actualizar el chofer" };
-    }
 
     return { success: true };
   } catch (error: any) {
+    if (isRedirectError(error)) throw error;
     console.error("updateChoferAction error:", error);
     return { success: false, error: error.message || "Error de conexion con el servidor" };
   }
@@ -142,23 +126,14 @@ export async function updateChoferAction(
 
 export async function deleteChoferAction(id: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const token = await getAccessToken();
-    if (!token) throw new Error("No autorizado");
-
-    const res = await fetch(`${BACKEND_API_URL}/drivers/${id}`, {
+    await apiFetch(`/drivers/${id}`, {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      authenticated: true,
     });
-
-    if (!res.ok) {
-      const err = await res.json();
-      return { success: false, error: err.message || "Error al eliminar el chofer" };
-    }
 
     return { success: true };
   } catch (error: any) {
+    if (isRedirectError(error)) throw error;
     console.error("deleteChoferAction error:", error);
     return { success: false, error: error.message || "Error de conexion con el servidor" };
   }

@@ -4,9 +4,14 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { getModelos, deleteModelo, createModelo, updateModelo, type ModeloPayload } from "@/lib/api";
-import { generateTelegramOtpAction } from "@/app/actions/jefes";
-import type { Modelo } from "@/types";
+import {
+  getModelosAction as getModelos,
+  deleteModeloAction as deleteModelo,
+  createModeloAction as createModelo,
+  updateModeloAction as updateModelo,
+} from "@/lib/actions/modelos";
+import { generateTelegramOtpAction } from "@/lib/actions/jefes";
+import type { Modelo, ModeloPayload } from "@/types";
 import ModelModal from "./ModelModal";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import SearchBar from "../ui/SearchBar";
@@ -96,14 +101,14 @@ export default function ModelosDashboard({
   );
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div className="w-full">
       {/* Dialogo de confirmacion */}
       <AnimatePresence>
         {confirmDelete && (
           <ConfirmDialog
             key="confirm-delete"
             title={`Eliminar a "${confirmDelete.nombre}"`}
-            description="Esta accion es permanente. El perfil y sus datos seran removidos del catalogo de inmediato. Las fotos en el storage deben borrarse manualmente si asi se desea."
+            description="Esta accion es permanente. El perfil, sus datos y sus fotos asociadas en la nube seran removidos por completo de inmediato."
             labelConfirm="Si, eliminar"
             onConfirm={() => confirmDeleteHandler(confirmDelete)}
             onCancel={() => setConfirmDelete(null)}

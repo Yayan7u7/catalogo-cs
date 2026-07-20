@@ -1,5 +1,5 @@
 import JefesDashboard from "@/components/admin/JefesDashboard";
-import { getJefesAction } from "@/app/actions/jefes";
+import { getJefesAction } from "@/lib/actions/jefes";
 
 export const dynamic = "force-dynamic";
 

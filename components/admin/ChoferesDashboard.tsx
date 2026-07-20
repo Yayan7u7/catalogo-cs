@@ -8,8 +8,8 @@ import {
   createChoferAction,
   deleteChoferAction,
   updateChoferAction,
-} from "@/app/actions/choferes";
-import { generateTelegramOtpAction } from "@/app/actions/jefes";
+} from "@/lib/actions/choferes";
+import { generateTelegramOtpAction } from "@/lib/actions/jefes";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import InputField from "../ui/InputField";
 import SearchBar from "../ui/SearchBar";
@@ -70,15 +70,6 @@ export default function ChoferesDashboard({ initialChoferes }: ChoferesDashboard
   const [confirmDelete, setConfirmDelete] = useState<Chofer | null>(null);
   const [otpCodes, setOtpCodes] = useState<Record<string, string>>({});
 
-  const fetchChoferes = async () => {
-    try {
-      const data = await getChoferesAction();
-      setChoferes(data);
-    } catch (err: any) {
-      toast.error(`Error: ${err.message || "Error al cargar choferes"}`);
-    }
-  };
-
   const handleSaveChofer = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -100,6 +91,22 @@ export default function ChoferesDashboard({ initialChoferes }: ChoferesDashboard
           throw new Error(res.error || "No se pudo actualizar el chofer");
         }
         toast.success("Chofer actualizado correctamente.");
+        setChoferes((prev) =>
+          prev.map((c) =>
+            c.id === editingChofer.id
+              ? {
+                  ...c,
+                  nombre,
+                  telefono: telefonoLimpio,
+                  email,
+                  vehiculoMarca: vehiculoMarca || "",
+                  vehiculoModelo: vehiculoModelo || "",
+                  vehiculoColor: vehiculoColor || "",
+                  vehiculoPlaca: vehiculoPlaca || "",
+                }
+              : c
+          )
+        );
       } else {
         const res = await createChoferAction(
           nombre,
@@ -115,6 +122,9 @@ export default function ChoferesDashboard({ initialChoferes }: ChoferesDashboard
           throw new Error(res.error || "No se pudo crear el chofer");
         }
         toast.success("Chofer creado correctamente.");
+        if (res.data) {
+          setChoferes((prev) => [...prev, res.data]);
+        }
       }
       setShowModal(false);
       setNombre("");
@@ -126,7 +136,6 @@ export default function ChoferesDashboard({ initialChoferes }: ChoferesDashboard
       setVehiculoColor("");
       setVehiculoPlaca("");
       setEditingChofer(null);
-      await fetchChoferes();
     } catch (err: any) {
       toast.error(err.message || "Error al guardar el chofer");
     } finally {
@@ -142,7 +151,7 @@ export default function ChoferesDashboard({ initialChoferes }: ChoferesDashboard
         throw new Error(res.error || "No se pudo eliminar el chofer");
       }
       toast.success("Chofer eliminado correctamente.");
-      await fetchChoferes();
+      setChoferes((prev) => prev.filter((c) => c.id !== chofer.id));
     } catch (err: any) {
       toast.error(err.message || "Error al eliminar el chofer");
     }
@@ -196,8 +205,8 @@ export default function ChoferesDashboard({ initialChoferes }: ChoferesDashboard
   });
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      {/* Dialogo de Confirmacion */}
+    <div className="w-full">
+      {/* Dialogo de confirmacion */}
       <AnimatePresence>
         {confirmDelete && (
           <ConfirmDialog
