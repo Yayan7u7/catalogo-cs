@@ -26,6 +26,8 @@ function mapToModelo(emp: any): Modelo {
     jefeSecundarioId: emp.jefeSecundarioId || null,
     apartmentId: emp.apartmentId || null,
     usuarioId: emp.usuarioId || null,
+    trustScore:
+      typeof emp.trustScore === "number" ? emp.trustScore : null,
     createdAt: emp.createdAt,
     extras: emp.extrasCatalogos
       ? emp.extrasCatalogos

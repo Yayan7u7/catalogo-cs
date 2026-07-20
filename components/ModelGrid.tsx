@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import type { Modelo } from "@/types";
+import ReliabilityRating from "@/components/ui/ReliabilityRating";
 
 interface ModelCardProps {
   modelo: Modelo;
@@ -61,6 +62,11 @@ function ModelCard({ modelo, index, onSelect }: ModelCardProps) {
           <h3 className="font-heading text-lg sm:text-xl lg:text-2xl font-semibold text-white tracking-wide leading-tight">
             {modelo.nombre}
           </h3>
+          <ReliabilityRating
+            score={modelo.trustScore}
+            compact
+            className="mt-2"
+          />
           <div className="w-8 h-px bg-[#C5A55A]/60 mt-2 group-hover:w-12 transition-all duration-500" />
         </div>
 

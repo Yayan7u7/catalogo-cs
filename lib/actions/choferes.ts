@@ -1,7 +1,9 @@
 "use server";
 
-import { apiFetch } from "@/lib/api-server";
+import { apiFetch, getApiBaseUrl } from "@/lib/api-server";
 import { isRedirectError } from "@/lib/auth";
+import { getAccessToken } from "@/lib/auth";
+import { getStaffTrustScores } from "@/lib/staff-reliability";
 
 export async function getChoferesAction(): Promise<
   {
@@ -14,12 +16,20 @@ export async function getChoferesAction(): Promise<
     vehiculoModelo?: string;
     vehiculoColor?: string;
     vehiculoPlaca?: string;
+    trustScore?: number | null;
   }[]
 > {
   try {
-    const drivers = await apiFetch<any[]>("/drivers", {
-      authenticated: true,
-    });
+    const token = await getAccessToken();
+    if (!token) throw new Error("No autorizado");
+
+    const [drivers, trustScores] = await Promise.all([
+      apiFetch<any[]>("/drivers", {
+        authenticated: true,
+      }),
+      getStaffTrustScores(getApiBaseUrl(), token),
+    ]);
+
     return drivers.map((d: any) => ({
       id: d.id,
       nombre: d.nombre,
@@ -30,6 +40,7 @@ export async function getChoferesAction(): Promise<
       vehiculoModelo: d.vehiculoModelo || "",
       vehiculoColor: d.vehiculoColor || "",
       vehiculoPlaca: d.vehiculoPlaca || "",
+      trustScore: trustScores[d.usuarioId] ?? null,
     }));
   } catch (error) {
     if (isRedirectError(error)) throw error;
@@ -46,7 +57,7 @@ export async function createChoferAction(
   vehiculoMarca?: string,
   vehiculoModelo?: string,
   vehiculoColor?: string,
-  vehiculoPlaca?: string
+  vehiculoPlaca?: string,
 ): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     const res = await apiFetch<any>("/drivers", {
@@ -81,7 +92,10 @@ export async function createChoferAction(
   } catch (error: any) {
     if (isRedirectError(error)) throw error;
     console.error("createChoferAction error:", error);
-    return { success: false, error: error.message || "Error de conexion con el servidor" };
+    return {
+      success: false,
+      error: error.message || "Error de conexion con el servidor",
+    };
   }
 }
 
@@ -94,7 +108,7 @@ export async function updateChoferAction(
   vehiculoMarca?: string,
   vehiculoModelo?: string,
   vehiculoColor?: string,
-  vehiculoPlaca?: string
+  vehiculoPlaca?: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const body: any = {
@@ -120,11 +134,16 @@ export async function updateChoferAction(
   } catch (error: any) {
     if (isRedirectError(error)) throw error;
     console.error("updateChoferAction error:", error);
-    return { success: false, error: error.message || "Error de conexion con el servidor" };
+    return {
+      success: false,
+      error: error.message || "Error de conexion con el servidor",
+    };
   }
 }
 
-export async function deleteChoferAction(id: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteChoferAction(
+  id: string,
+): Promise<{ success: boolean; error?: string }> {
   try {
     await apiFetch(`/drivers/${id}`, {
       method: "DELETE",
@@ -135,6 +154,9 @@ export async function deleteChoferAction(id: string): Promise<{ success: boolean
   } catch (error: any) {
     if (isRedirectError(error)) throw error;
     console.error("deleteChoferAction error:", error);
-    return { success: false, error: error.message || "Error de conexion con el servidor" };
+    return {
+      success: false,
+      error: error.message || "Error de conexion con el servidor",
+    };
   }
 }
