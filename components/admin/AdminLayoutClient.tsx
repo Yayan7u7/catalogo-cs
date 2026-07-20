@@ -142,7 +142,7 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
           >
             Reportes
           </Link>
-          <Link
+          {/* <Link
             href="/admin/alerts"
             className={`flex items-center gap-4 px-6 py-4 text-xs font-bold tracking-[0.15em] uppercase transition-colors duration-300 ${
               isActive("/admin/alerts")
@@ -181,7 +181,7 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
             }`}
           >
             Alertas Sentimiento
-          </Link>
+          </Link> */}
 
         </nav>
         <div className="p-4 border-t border-zinc-800">
