@@ -3,13 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { FileWarning, LogOut, MapPinned, ShieldCheck, UsersRound } from "lucide-react";
+import { FileWarning, LogOut, Megaphone, MapPinned, ShieldCheck, UsersRound } from "lucide-react";
 import { logoutAction } from "@/lib/actions/auth";
 
 const links = [
   { href: "/jefe", label: "Mi equipo", icon: UsersRound },
   { href: "/jefe/mapa", label: "Mapa", icon: MapPinned },
   { href: "/jefe/reportes", label: "Reportes", icon: FileWarning },
+  { href: "/jefe/promociones", label: "Anuncios", icon: Megaphone },
 ];
 
 export default function JefeLayoutClient({ children }: { children: React.ReactNode }) {
