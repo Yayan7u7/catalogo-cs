@@ -1,12 +1,15 @@
 "use server";
 
 import { apiFetch } from "@/lib/api-server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isRedirectError } from "@/lib/auth";
 import type { CashObligationSummary, ConversationMessage, Employee, Service } from "@/lib/types";
+import { redirect } from "next/navigation";
 
 async function requireJefe() {
   const user = await getCurrentUser();
-  if (!user || user.rol !== "jefe") throw new Error("Acceso no autorizado");
+  if (!user || user.rol !== "jefe") {
+    redirect("/admin");
+  }
   return user;
 }
 
@@ -37,6 +40,7 @@ export async function registerJefeCashPayment(employeeId: string, amount: number
     });
     return { success: true };
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     return { success: false, error: error instanceof Error ? error.message : "No se pudo registrar la entrega" };
   }
 }
@@ -46,6 +50,7 @@ export async function closeJefeCashObligation(obligationId: string) {
     await apiFetch(`/transport-operations/cash-obligations/${obligationId}/close`, { method: "POST" });
     return { success: true };
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     return { success: false, error: error instanceof Error ? error.message : "No se pudo saldar el servicio" };
   }
 }
@@ -73,6 +78,7 @@ export async function setEmployeeAvailability(employeeId: string, disponible: bo
     });
     return { success: true };
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     return { success: false, error: error instanceof Error ? error.message : "No se pudo actualizar" };
   }
 }
@@ -90,6 +96,7 @@ export async function decidePendingService(
     });
     return { success: true };
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     return { success: false, error: error instanceof Error ? error.message : "No se pudo procesar" };
   }
 }
@@ -107,6 +114,7 @@ export async function chooseReturnTransport(serviceId: string, transportType: "c
     });
     return { success: true, data };
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     return { success: false, error: error instanceof Error ? error.message : "No se pudo elegir el regreso" };
   }
 }
@@ -119,6 +127,7 @@ export async function updateUberStatus(tripId: string, status: "en_camino" | "ll
     });
     return { success: true };
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     return { success: false, error: error instanceof Error ? error.message : "No se pudo actualizar el Uber" };
   }
 }
@@ -131,6 +140,7 @@ export async function confirmUberFare(tripId: string, amount: number) {
     });
     return { success: true };
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     return { success: false, error: error instanceof Error ? error.message : "No se pudo registrar la tarifa" };
   }
 }
@@ -146,6 +156,7 @@ export async function changeTripTransport(
     });
     return { success: true, data };
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     return {
       success: false,
       error:
@@ -166,6 +177,7 @@ export async function uploadUberScreenshot(formData: FormData) {
     await apiFetch(`/services/trips/${tripId}/uber-screenshot`, { method: "POST", body: payload });
     return { success: true };
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     return { success: false, error: error instanceof Error ? error.message : "No se pudo enviar la captura" };
   }
 }
@@ -185,6 +197,7 @@ export async function sendServiceMessage(serviceId: string, message: string) {
     });
     return { success: true, data };
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     return { success: false, error: error instanceof Error ? error.message : "No se pudo enviar el mensaje" };
   }
 }

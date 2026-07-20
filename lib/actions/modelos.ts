@@ -1,6 +1,6 @@
 "use server";
 
-import { getAccessToken, clearSessionCookie } from "@/lib/auth";
+import { isRedirectError } from "@/lib/auth";
 import type { Modelo, ModeloPayload } from "@/types";
 import { revalidatePath } from "next/cache";
 import { apiFetch } from "@/lib/api-server";
@@ -39,22 +39,23 @@ function mapToModelo(emp: any): Modelo {
   };
 }
 
+export async function getCatalogModelosAction(onlyAvailable = false): Promise<Modelo[]> {
+  try {
+    const data = await apiFetch<any[]>("/catalog/employees", { authenticated: false });
+    let list = data.map(mapToModelo);
+    if (onlyAvailable) {
+      list = list.filter((m: Modelo) => m.disponible);
+    }
+    return list.sort(() => 0.5 - Math.random());
+  } catch (error) {
+    console.error("getCatalogModelosAction error:", error);
+    return [];
+  }
+}
+
 export async function getModelosAction(onlyAvailable = false): Promise<Modelo[]> {
   try {
-    const token = await getAccessToken();
-    let data: any[];
-
-    if (token) {
-      try {
-        data = await apiFetch<any[]>("/employees", { authenticated: true });
-      } catch (error) {
-        await clearSessionCookie();
-        data = await apiFetch<any[]>("/catalog/employees", { authenticated: false });
-      }
-    } else {
-      data = await apiFetch<any[]>("/catalog/employees", { authenticated: false });
-    }
-
+    const data = await apiFetch<any[]>("/employees", { authenticated: true });
     let list = data.map(mapToModelo);
 
     if (onlyAvailable) {
@@ -64,6 +65,7 @@ export async function getModelosAction(onlyAvailable = false): Promise<Modelo[]>
     // Aleatorizar el catálogo para el frontend
     return list.sort(() => 0.5 - Math.random());
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     console.error("getModelosAction error:", error);
     return [];
   }
@@ -156,6 +158,7 @@ export async function getJefesAction(): Promise<{ id: string; email: string }[]>
     });
     return users.map((u: any) => ({ id: u.id, email: u.email }));
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     console.error("getJefesAction error:", error);
     return [];
   }
@@ -172,6 +175,7 @@ export async function getApartmentsAction(): Promise<{ id: string; name: string 
       name: a.nombre || `Apto ${a.nombre || a.id}`,
     }));
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     console.error("getApartmentsAction error:", error);
     return [];
   }

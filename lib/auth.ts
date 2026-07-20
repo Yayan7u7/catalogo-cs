@@ -76,3 +76,18 @@ export async function verifyToken(token: string) {
     return null;
   }
 }
+
+export function isRedirectError(error: unknown): boolean {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    typeof (error as { digest: unknown }).digest === "string" &&
+    ((error as { digest: string }).digest.startsWith("NEXT_REDIRECT") ||
+      (error as { digest: string }).digest.startsWith("NEXT_NOT_FOUND"))
+  ) {
+    return true;
+  }
+  return false;
+}
+

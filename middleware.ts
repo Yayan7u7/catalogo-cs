@@ -34,21 +34,27 @@ export async function middleware(request: NextRequest) {
   // Protección de rutas de administración
   if (pathname.startsWith("/admin")) {
     const token = request.cookies.get(COOKIE_NAME)?.value;
-    const isValid = token ? await verifyToken(token) : null;
+    const session = token ? await verifyToken(token) : null;
+    const role = (session?.user as { rol?: string } | undefined)?.rol;
 
-    if (isValid && (isValid.user as { rol?: string } | undefined)?.rol === "admin") {
-      // Si ya está autenticado y está en la raíz /admin, redirigir a /admin/modelos
+    if (session && role === "admin") {
       if (pathname === "/admin") {
         return NextResponse.redirect(new URL("/admin/modelos", request.url));
       }
+    } else if (session && role === "jefe") {
+      if (pathname === "/admin") {
+        return NextResponse.redirect(new URL("/jefe", request.url));
+      }
     } else {
-      // Si no está autenticado y está en una subruta de /admin, redirigir a /admin
       if (pathname !== "/admin") {
-        return NextResponse.redirect(new URL("/admin", request.url));
+        const response = NextResponse.redirect(new URL("/admin", request.url));
+        if (token) {
+          response.cookies.delete(COOKIE_NAME);
+        }
+        return response;
       }
     }
   }
-
 
   if (pathname.startsWith("/jefe")) {
     const token = request.cookies.get(COOKIE_NAME)?.value;
@@ -56,13 +62,18 @@ export async function middleware(request: NextRequest) {
     const role = (session?.user as { rol?: string } | undefined)?.rol;
 
     if (!session) {
-      return NextResponse.redirect(new URL("/admin", request.url));
+      const response = NextResponse.redirect(new URL("/admin", request.url));
+      if (token) {
+        response.cookies.delete(COOKIE_NAME);
+      }
+      return response;
     }
     if (role === "admin") {
       return NextResponse.redirect(new URL("/admin/dashboard", request.url));
     }
     if (role !== "jefe") {
-      return NextResponse.redirect(new URL("/admin", request.url));
+      const response = NextResponse.redirect(new URL("/admin", request.url));
+      return response;
     }
   }
 

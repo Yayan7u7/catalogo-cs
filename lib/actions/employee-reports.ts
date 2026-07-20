@@ -84,6 +84,7 @@ async function reportMutation(path: string, method: "POST" | "PATCH", body?: obj
     });
     return { success: true as const, data };
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     return {
       success: false as const,
       error: error instanceof Error ? error.message : "No se pudo actualizar el reporte",

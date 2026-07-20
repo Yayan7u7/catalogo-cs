@@ -1,6 +1,7 @@
 "use server";
 
 import { apiFetch } from "@/lib/api-server";
+import { isRedirectError } from "@/lib/auth";
 
 // TODO: verificar si GET /users?rol=jefe existe en el backend o si hay un endpoint especifico para listar jefes
 export async function getJefesAction(): Promise<{ id: string; email: string; nombre?: string | null; apellido?: string | null }[]> {
@@ -15,6 +16,7 @@ export async function getJefesAction(): Promise<{ id: string; email: string; nom
       apellido: u.apellido,
     }));
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     console.error("getJefesAction error:", error);
     return [];
   }
@@ -35,6 +37,7 @@ export async function createJefeAction(
 
     return { success: true };
   } catch (error: any) {
+    if (isRedirectError(error)) throw error;
     console.error("createJefeAction error:", error);
     return { success: false, error: error.message || "Error de conexion con el servidor" };
   }
@@ -61,6 +64,7 @@ export async function updateJefeAction(
 
     return { success: true };
   } catch (error: any) {
+    if (isRedirectError(error)) throw error;
     console.error("updateJefeAction error:", error);
     return { success: false, error: error.message || "Error de conexion con el servidor" };
   }
@@ -75,6 +79,7 @@ export async function deleteJefeAction(id: string): Promise<{ success: boolean; 
 
     return { success: true };
   } catch (error: any) {
+    if (isRedirectError(error)) throw error;
     console.error("deleteJefeAction error:", error);
     return { success: false, error: error.message || "Error de conexion con el servidor" };
   }
@@ -89,6 +94,7 @@ export async function generateTelegramOtpAction(id: string): Promise<{ success: 
     });
     return { success: true, code: data.code, expiresAt: data.expiresAt };
   } catch (error: any) {
+    if (isRedirectError(error)) throw error;
     console.error("generateTelegramOtpAction error:", error);
     return { success: false, error: error.message || "Error de conexion con el servidor" };
   }

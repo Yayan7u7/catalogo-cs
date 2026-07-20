@@ -1,4 +1,5 @@
-import { getAccessToken } from "@/lib/auth";
+import { getAccessToken, clearSessionCookie, isRedirectError } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export function getApiBaseUrl() {
   return (
@@ -23,6 +24,11 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const token = authenticated ? await getAuthToken() : undefined;
 
+  if (authenticated && !token) {
+    await clearSessionCookie();
+    redirect("/admin");
+  }
+
   let response: Response;
   try {
     const isFormData = options.body instanceof FormData;
@@ -36,21 +42,28 @@ export async function apiFetch<T>(
       },
     });
   } catch (error) {
-    console.warn(`[Bypass Auth/Network] Network error (fetch failed) for ${path}. Is the backend running?`, error);
-    return [] as unknown as T;
+    if (isRedirectError(error)) {
+      throw error;
+    }
+    console.error(`Error de conexión con backend (${path}):`, error);
+    throw new Error("No se pudo conectar con el servidor backend");
   }
 
   if (!response.ok) {
     if (response.status === 401) {
-      console.warn(`[Bypass Auth] Ignored 401 Unauthorized for ${path}`);
-      return [] as unknown as T;
+      if (authenticated) {
+        await clearSessionCookie();
+        redirect("/admin");
+      }
     }
-
 
     let message = `Backend request failed with ${response.status}`;
     try {
       const body = await response.json();
       message = body.message ?? body.error ?? message;
+      if (Array.isArray(message)) {
+        message = message.join(", ");
+      }
     } catch {
       // Keep the generic message when the backend returns no JSON body.
     }
@@ -73,3 +86,4 @@ export async function apiFetch<T>(
     throw new Error("El backend devolvió una respuesta con formato inválido");
   }
 }
+

@@ -1,6 +1,7 @@
 "use server";
 
 import { apiFetch } from "@/lib/api-server";
+import { isRedirectError } from "@/lib/auth";
 
 export async function getChoferesAction(): Promise<
   {
@@ -31,6 +32,7 @@ export async function getChoferesAction(): Promise<
       vehiculoPlaca: d.vehiculoPlaca || "",
     }));
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     console.error("getChoferesAction error:", error);
     return [];
   }
@@ -77,6 +79,7 @@ export async function createChoferAction(
       },
     };
   } catch (error: any) {
+    if (isRedirectError(error)) throw error;
     console.error("createChoferAction error:", error);
     return { success: false, error: error.message || "Error de conexion con el servidor" };
   }
@@ -115,6 +118,7 @@ export async function updateChoferAction(
 
     return { success: true };
   } catch (error: any) {
+    if (isRedirectError(error)) throw error;
     console.error("updateChoferAction error:", error);
     return { success: false, error: error.message || "Error de conexion con el servidor" };
   }
@@ -129,6 +133,7 @@ export async function deleteChoferAction(id: string): Promise<{ success: boolean
 
     return { success: true };
   } catch (error: any) {
+    if (isRedirectError(error)) throw error;
     console.error("deleteChoferAction error:", error);
     return { success: false, error: error.message || "Error de conexion con el servidor" };
   }
