@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { FileWarning, LogOut, MapPinned, ShieldCheck, UsersRound } from "lucide-react";
 import { logoutAction } from "@/lib/actions/auth";
+import SessionKeeper from "@/components/auth/session-keeper";
+import { broadcastLogout } from "@/lib/client-session";
 
 const links = [
   { href: "/jefe", label: "Mi equipo", icon: UsersRound },
@@ -18,11 +20,13 @@ export default function JefeLayoutClient({ children }: { children: React.ReactNo
 
   async function signOut() {
     await logoutAction();
+    broadcastLogout();
     router.replace("/admin");
   }
 
   return (
     <div className="min-h-screen bg-black font-body text-white md:flex">
+      <SessionKeeper />
       <aside className="hidden w-64 shrink-0 border-r border-zinc-800 bg-[#050505] md:flex md:flex-col">
         <div className="border-b border-zinc-800 p-7">
           <Image src="/logo-horizontal.webp" alt="Colombia Sexys" width={190} height={70} className="h-auto w-full" />

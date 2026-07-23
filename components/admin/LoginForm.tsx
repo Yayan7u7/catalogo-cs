@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
-import { loginAction } from "@/lib/actions/auth";
+import { checkSessionAction, loginAction } from "@/lib/actions/auth";
+import { refreshSession } from "@/lib/client-session";
 
 const inputClass =
   "w-full bg-black/40 border border-zinc-800 text-white text-sm font-medium px-4 py-3.5 rounded-lg transition-all duration-300 focus:border-[#C5A55A]/60 focus:bg-black/60 focus:ring-4 focus:ring-[#C5A55A]/10 placeholder:text-zinc-600 focus:outline-none tracking-wide";
@@ -19,6 +20,31 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const onSuccessRef = useRef(onSuccess);
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function restoreSession() {
+      const result = await refreshSession();
+      if (result !== "refreshed" || !active) return;
+
+      const user = await checkSessionAction();
+      if (!user || !active) return;
+      onSuccessRef.current(
+        user.rol === "jefe" ? "/jefe" : "/admin/dashboard",
+      );
+    }
+
+    void restoreSession();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,8 +60,10 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
       toast.success("Bienvenido al panel");
       onSuccess(res.redirectTo || "/admin/dashboard");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "No se pudo iniciar sesión",
+      );
     } finally {
       setLoading(false);
     }

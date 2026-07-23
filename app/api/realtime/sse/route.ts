@@ -1,24 +1,32 @@
 import { NextRequest } from "next/server";
-import { getAccessToken } from "@/lib/auth";
 import { getApiBaseUrl } from "@/lib/api-server";
+import { getBackendCookieHeader, getCsrfToken } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const token = await getAccessToken();
-  if (!token) {
+  const cookie = await getBackendCookieHeader();
+  if (!cookie) {
     return new Response("No autorizado", { status: 401 });
   }
 
+  const csrfToken = await getCsrfToken();
   const apiBaseUrl = getApiBaseUrl();
-  const backendUrl = `${apiBaseUrl}/realtime/sse/jefes?token=${encodeURIComponent(token)}`;
+  const backendUrl = `${apiBaseUrl}/realtime/sse/jefes`;
 
   try {
+    const headers: Record<string, string> = {
+      Accept: "text/event-stream",
+      "Cache-Control": "no-cache",
+      Cookie: cookie,
+    };
+
+    if (csrfToken) {
+      headers["x-csrf-token"] = csrfToken;
+    }
+
     const response = await fetch(backendUrl, {
-      headers: {
-        Accept: "text/event-stream",
-        "Cache-Control": "no-cache",
-      },
+      headers,
       cache: "no-store",
     });
 

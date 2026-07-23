@@ -1,43 +1,64 @@
 "use server";
 
-import { createSessionCookie, clearSessionCookie, getSessionPayload } from "@/lib/auth";
-import { apiFetch } from "@/lib/api-server";
+import { applyBackendSetCookies } from "@/lib/auth-cookies";
+import {
+  getBackendCookieHeader,
+  getCsrfToken,
+  getCurrentUser,
+} from "@/lib/auth";
+import { getApiBaseUrl } from "@/lib/api-server";
 
 export async function loginAction(email: string, password: string) {
   try {
-    const data = await apiFetch<any>("/auth/login", {
+    const response = await fetch(`${getApiBaseUrl()}/auth/login`, {
       method: "POST",
       body: JSON.stringify({ email, password }),
-      authenticated: false,
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
     });
-
-    const token = data.access_token || data.accessToken;
-    if (!token) {
-      return { success: false, error: "No se recibió token de acceso" };
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.message || "Credenciales incorrectas");
     }
 
-    // Guardamos el accessToken de NestJS en la cookie de sesion de Next.js
     if (!data.user || !["admin", "jefe"].includes(data.user.rol)) {
       return { success: false, error: "Tu cuenta no tiene acceso a este panel" };
     }
-    await createSessionCookie(token, data.user);
+    await applyBackendSetCookies(response);
 
     return {
       success: true,
       redirectTo: data.user.rol === "jefe" ? "/jefe" : "/admin/dashboard",
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("loginAction error:", error);
-    return { success: false, error: error.message || "Error de conexión con el servidor de autenticación" };
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Error de conexión con el servidor de autenticación",
+    };
   }
 }
 
 export async function logoutAction() {
-  await clearSessionCookie();
+  const [cookie, csrfToken] = await Promise.all([
+    getBackendCookieHeader(),
+    getCsrfToken(),
+  ]);
+  const response = await fetch(`${getApiBaseUrl()}/auth/logout`, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      Cookie: cookie,
+      ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
+    },
+  });
+  await applyBackendSetCookies(response);
   return { success: true };
 }
 
 export async function checkSessionAction() {
-  const payload = await getSessionPayload();
-  return !!payload;
+  return getCurrentUser();
 }

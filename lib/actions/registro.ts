@@ -1,6 +1,7 @@
 "use server";
 
 import { apiFetch } from "@/lib/api-server";
+import { isRedirectError } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -64,6 +65,7 @@ export async function createEmployeeAction(data: unknown): Promise<{ success: bo
     revalidatePath("/employees");
     return { success: true, data: res, error: null };
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     const message = error instanceof Error ? error.message : "Error al crear la empleada";
     return { success: false, error: message };
   }
@@ -97,6 +99,7 @@ export async function createDriverAction(data: unknown): Promise<{ success: bool
     revalidatePath("/drivers");
     return { success: true, data: res, error: null };
   } catch (error) {
+    if (isRedirectError(error)) throw error;
     const message = error instanceof Error ? error.message : "Error al crear el chofer";
     return { success: false, error: message };
   }

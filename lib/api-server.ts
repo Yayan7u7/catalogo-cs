@@ -1,4 +1,9 @@
-import { getAccessToken, clearSessionCookie, isRedirectError } from "@/lib/auth";
+import {
+  getBackendCookieHeader,
+  getCsrfToken,
+  isRedirectError,
+} from "@/lib/auth";
+import { ACCESS_COOKIE } from "@/lib/auth-constants";
 import { redirect } from "next/navigation";
 
 export function getApiBaseUrl() {
@@ -14,18 +19,14 @@ type ApiFetchOptions = RequestInit & {
   authenticated?: boolean;
 };
 
-export async function getAuthToken() {
-  return getAccessToken();
-}
-
 export async function apiFetch<T>(
   path: string,
   { authenticated = true, headers, ...options }: ApiFetchOptions = {},
 ): Promise<T> {
-  const token = authenticated ? await getAuthToken() : undefined;
+  const cookie = authenticated ? await getBackendCookieHeader() : "";
+  const csrfToken = authenticated ? await getCsrfToken() : undefined;
 
-  if (authenticated && !token) {
-    await clearSessionCookie();
+  if (authenticated && !cookie.includes(`${ACCESS_COOKIE}=`)) {
     redirect("/admin");
   }
 
@@ -37,7 +38,8 @@ export async function apiFetch<T>(
       cache: "no-store",
       headers: {
         ...(!isFormData ? { "Content-Type": "application/json" } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(cookie ? { Cookie: cookie } : {}),
+        ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
         ...headers,
       },
     });
@@ -52,7 +54,6 @@ export async function apiFetch<T>(
   if (!response.ok) {
     if (response.status === 401) {
       if (authenticated) {
-        await clearSessionCookie();
         redirect("/admin");
       }
     }
@@ -86,4 +87,3 @@ export async function apiFetch<T>(
     throw new Error("El backend devolvió una respuesta con formato inválido");
   }
 }
-

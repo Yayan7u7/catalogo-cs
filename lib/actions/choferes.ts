@@ -1,8 +1,7 @@
 "use server";
 
-import { apiFetch, getApiBaseUrl } from "@/lib/api-server";
+import { apiFetch } from "@/lib/api-server";
 import { isRedirectError } from "@/lib/auth";
-import { getAccessToken } from "@/lib/auth";
 import { getStaffTrustScores } from "@/lib/staff-reliability";
 
 export async function getChoferesAction(): Promise<
@@ -20,14 +19,11 @@ export async function getChoferesAction(): Promise<
   }[]
 > {
   try {
-    const token = await getAccessToken();
-    if (!token) throw new Error("No autorizado");
-
     const [drivers, trustScores] = await Promise.all([
       apiFetch<any[]>("/drivers", {
         authenticated: true,
       }),
-      getStaffTrustScores(getApiBaseUrl(), token),
+      getStaffTrustScores(),
     ]);
 
     return drivers.map((d: any) => ({

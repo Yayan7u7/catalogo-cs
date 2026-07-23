@@ -48,7 +48,9 @@ export default function TeamOperations({ initialEmployees, initialServices, init
   }
 
   useEffect(() => {
-    const source = new EventSource("/api/realtime/sse");
+    const source = new EventSource("/api/realtime/sse", {
+      withCredentials: true
+    });
     source.onopen = () => {
       void reloadServices();
       void reloadEmployees();
