@@ -1,5 +1,6 @@
 import ServiceStatusBadge from "./service-status-badge";
 import type { Service } from "@/lib/types";
+import { formatAvailabilityTime } from "@/lib/availability";
 
 type Props = {
   initialServices?: Service[];
@@ -73,6 +74,17 @@ export default function ServicesTable({ initialServices = [] }: Props) {
                   <ServiceStatusBadge
                     status={service.estado}
                   />
+                  {service.horaInicioEstimada && (
+                    <p className="mt-2 text-xs text-zinc-500">
+                      Llegada estimada:{" "}
+                      {formatAvailabilityTime(service.horaInicioEstimada)}
+                    </p>
+                  )}
+                  {service.notasJefe && (
+                    <p className="mt-2 max-w-xs text-xs text-zinc-400">
+                      Nota interna: {service.notasJefe}
+                    </p>
+                  )}
                 </td>
               </tr>
             ))

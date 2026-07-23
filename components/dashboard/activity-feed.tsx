@@ -7,10 +7,10 @@ type Props = {
 
 const statusLabels: Record<Service["estado"], string> = {
   pendiente: "Pendiente",
+  agendado: "Agendado",
   en_curso: "En curso",
   finalizado: "Finalizado",
   cancelado: "Cancelado",
-  pendiente_encadenado: "En espera",
 };
 
 export default function ActivityFeed({ services, error }: Props) {

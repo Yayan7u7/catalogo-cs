@@ -25,9 +25,25 @@ export default function Home() {
 
     async function loadModelos() {
       try {
-        const data = await getModelos(true);
+        const data = await getModelos(false);
         if (!cancelled) {
-          setModelos(data);
+          setModelos((current) => {
+            if (current.length === 0) return data;
+            const latest = new Map(data.map((modelo) => [modelo._id, modelo]));
+            const retained = current
+              .map((modelo) => latest.get(modelo._id))
+              .filter((modelo): modelo is Modelo => Boolean(modelo));
+            const retainedIds = new Set(retained.map((modelo) => modelo._id));
+            return [
+              ...retained,
+              ...data.filter((modelo) => !retainedIds.has(modelo._id)),
+            ];
+          });
+          setSelectedModelo((current) =>
+            current
+              ? data.find((modelo) => modelo._id === current._id) ?? null
+              : null,
+          );
         }
       } catch (error) {
         console.error("Error cargando modelos:", error);
@@ -36,9 +52,13 @@ export default function Home() {
       }
     }
 
-    loadModelos();
+    void loadModelos();
+    const interval = window.setInterval(() => {
+      void loadModelos();
+    }, 30_000);
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
     };
   }, []);
 

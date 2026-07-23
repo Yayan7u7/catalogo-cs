@@ -37,8 +37,13 @@ export type Employee = {
   precioBaseHora: string;
   disponible: boolean;
   catalogoActivo: boolean;
+  availabilityStatus?: "disponible" | "ocupada" | "inactiva";
+  estimatedAvailableAt?: string | null;
+  canScheduleNext?: boolean;
   totalServiciosValorados: number;
   promedioCalificacion: number | null;
+  clientRatingAverage?: number | null;
+  clientRatingCount?: number;
   ubicacionLat: string | null;
   ubicacionLng: string | null;
   ultimaUbicacionAt?: string | null;
@@ -70,10 +75,10 @@ export type Client = {
 
 export type ServiceStatus =
   | "pendiente"
+  | "agendado"
   | "en_curso"
   | "finalizado"
-  | "cancelado"
-  | "pendiente_encadenado";
+  | "cancelado";
 
 export type Service = {
   id: string;
@@ -101,11 +106,14 @@ export type Service = {
   prorrogasUsadas: number;
   estado: ServiceStatus;
   notas: string | null;
+  notasJefe?: string | null;
   iaActiva: boolean;
   calificacion: number | null;
   comentariosCalificacion: string | null;
   servicioPrevioId: string | null;
+  horaDisponibilidadEstimada?: string | null;
   horaInicioEstimada: string | null;
+  transporteAgendado?: "chofer" | "uber" | null;
   createdAt: string;
   calculationStatus: "provisional" | "ready" | "paid";
   pendingReason: string | null;
@@ -137,7 +145,8 @@ export type ConversationMessage = {
   id: string;
   clienteId: string;
   servicioId: string;
-  emisor: "ia" | "jefe" | "cliente";
+  bookingSessionId?: string | null;
+  emisor: "ia" | "jefe" | "cliente" | "sistema";
   mensaje: string;
   enviadoAt: string;
 };

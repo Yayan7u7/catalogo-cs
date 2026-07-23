@@ -1,10 +1,6 @@
 import { redirect } from "next/navigation";
-import ReportsDashboard from "@/components/employee-reports/reports-dashboard";
-import {
-  getEmployeeReportDashboard,
-  getEmployeeReports,
-  getReportAdmins,
-} from "@/lib/actions/employee-reports";
+import DisciplineDashboard from "@/components/employee-reports/discipline-dashboard";
+import { getConductReports, getSanctions } from "@/lib/actions/discipline";
 import { getCurrentUser } from "@/lib/auth";
 
 export default async function ReportsPage() {
@@ -13,19 +9,16 @@ export default async function ReportsPage() {
   if (user.rol === "jefe") redirect("/jefe/reportes");
   if (user.rol !== "admin") redirect("/admin");
 
-  const [reports, dashboard, admins] = await Promise.all([
-    getEmployeeReports({ page: 1, limit: 20 }),
-    getEmployeeReportDashboard(),
-    getReportAdmins(),
+  const [reports, sanctions] = await Promise.all([
+    getConductReports(),
+    getSanctions(),
   ]);
 
   return (
-    <ReportsDashboard
+    <DisciplineDashboard
       role="admin"
       initialReports={reports}
-      initialSummary={dashboard.summary}
-      initialTolerance={dashboard.tolerance}
-      admins={admins}
+      initialSanctions={sanctions}
     />
   );
 }
