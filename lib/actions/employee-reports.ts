@@ -1,7 +1,7 @@
 "use server";
 
 import { apiFetch } from "@/lib/api-server";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, isRedirectError } from "@/lib/auth";
 import type {
   ApiUser,
   EmployeeReport,

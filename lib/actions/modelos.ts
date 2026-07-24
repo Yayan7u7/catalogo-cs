@@ -21,12 +21,22 @@ function mapToModelo(emp: any): Modelo {
     contactLink: `https://t.me/${botUsername}?start=contratar_${emp.id}`,
     contactLabel: emp.contactLabel || "Contacto",
     disponible: emp.disponible,
+    availabilityStatus: emp.availabilityStatus,
+    estimatedAvailableAt: emp.estimatedAvailableAt ?? null,
+    canScheduleNext: emp.canScheduleNext,
     precioBaseHora: emp.precioBaseHora ? parseFloat(emp.precioBaseHora) : 100,
     // TODO: el campo `tipo` fue eliminado del backend — verificar si sigue siendo necesario
     jefeId: emp.jefeId || null,
     jefeSecundarioId: emp.jefeSecundarioId || null,
     apartmentId: emp.apartmentId || null,
     usuarioId: emp.usuarioId || null,
+    trustScore:
+      typeof emp.trustScore === "number" ? emp.trustScore : null,
+    clientRatingAverage:
+      emp.clientRatingAverage == null
+        ? null
+        : Number(emp.clientRatingAverage),
+    clientRatingCount: Number(emp.clientRatingCount ?? 0),
     createdAt: emp.createdAt,
     extras: emp.extrasCatalogos
       ? emp.extrasCatalogos

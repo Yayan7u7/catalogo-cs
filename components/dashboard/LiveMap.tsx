@@ -64,7 +64,9 @@ export default function LiveMap({ employees, drivers }: Props) {
   }, [employees]);
 
   useEffect(() => {
-    const eventSource = new EventSource("/api/realtime/sse");
+    const eventSource = new EventSource("/api/realtime/sse", {
+      withCredentials: true
+    });
 
     eventSource.onmessage = (event) => {
       try {

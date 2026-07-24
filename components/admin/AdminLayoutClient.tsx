@@ -7,6 +7,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import LoginForm from "@/components/admin/LoginForm";
 import { logoutAction } from "@/lib/actions/auth";
+import SessionKeeper from "@/components/auth/session-keeper";
+import { broadcastLogout } from "@/lib/client-session";
 
 
 interface AdminLayoutClientProps {
@@ -22,6 +24,7 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
   const handleSignOut = async () => {
     try {
       await logoutAction();
+      broadcastLogout();
       router.push("/admin");
     } catch (e) {
       console.error(e);
@@ -41,6 +44,7 @@ export default function AdminLayoutClient({ children }: AdminLayoutClientProps) 
 
   return (
     <div className="flex min-h-screen bg-black text-white font-body overflow-hidden">
+      <SessionKeeper />
       {/* Sidebar Desktop */}
       <aside className="w-72 border-r border-zinc-800 bg-[#050505] flex flex-col hidden md:flex shrink-0">
         <div className="p-8 border-b border-zinc-800 flex flex-col items-center">

@@ -14,12 +14,14 @@ import ConfirmDialog from "../ui/ConfirmDialog";
 import InputField from "../ui/InputField";
 import SearchBar from "../ui/SearchBar";
 import CreateButton from "../ui/CreateButton";
+import ReliabilityRating from "../ui/ReliabilityRating";
 
 interface Jefe {
   id: string;
   email: string;
   nombre?: string | null;
   apellido?: string | null;
+  trustScore?: number | null;
 }
 
 const inputClass =
@@ -266,8 +268,8 @@ export default function JefesDashboard({ initialJefes }: JefesDashboardProps) {
           </p>
         </div>
       ) : (
-        <div className="border border-zinc-800/80 bg-zinc-950/40 rounded-xl overflow-hidden">
-          <table className="w-full text-left border-collapse">
+        <div className="border border-zinc-800/80 bg-zinc-950/40 rounded-xl overflow-x-auto">
+          <table className="w-full min-w-[900px] text-left border-collapse">
             <thead>
               <tr className="border-b border-zinc-800 bg-zinc-900/30">
                 <th className="px-6 py-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
@@ -275,6 +277,9 @@ export default function JefesDashboard({ initialJefes }: JefesDashboardProps) {
                 </th>
                 <th className="px-6 py-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
                   Correo Electronico
+                </th>
+                <th className="px-6 py-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
+                  Confiabilidad
                 </th>
                 <th className="px-6 py-4 text-[10px] font-bold tracking-[0.2em] text-zinc-400 uppercase">
                   Telegram OTP
@@ -292,6 +297,9 @@ export default function JefesDashboard({ initialJefes }: JefesDashboardProps) {
                   </td>
                   <td className="px-6 py-4 text-sm font-medium text-zinc-300">
                     {jefe.email}
+                  </td>
+                  <td className="px-6 py-4">
+                    <ReliabilityRating score={jefe.trustScore} compact />
                   </td>
                   <td className="px-6 py-4 text-sm font-medium">
                     {otpCodes[jefe.id] ? (

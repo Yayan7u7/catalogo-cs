@@ -16,6 +16,7 @@ import ModelModal from "./ModelModal";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import SearchBar from "../ui/SearchBar";
 import CreateButton from "../ui/CreateButton";
+import ReliabilityRating from "../ui/ReliabilityRating";
 
 interface ModelosDashboardProps {
   initialModelos: Modelo[];
@@ -215,6 +216,11 @@ export default function ModelosDashboard({
                 <h3 className="font-heading text-lg font-semibold text-white mb-2">
                   {modelo.nombre}
                 </h3>
+                <ReliabilityRating
+                  score={modelo.trustScore}
+                  compact
+                  className="mb-3"
+                />
                 {modelo.usuarioId && (
                   <div className="mb-3">
                     {otpCodes[modelo.usuarioId!] ? (

@@ -4,6 +4,8 @@ import { useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import type { Modelo } from "@/types";
+import CustomerRating from "@/components/ui/CustomerRating";
+import { availabilityLabel } from "@/lib/availability";
 
 interface ModelProfileProps {
   modelo: Modelo;
@@ -13,6 +15,13 @@ interface ModelProfileProps {
 export default function ModelProfile({ modelo, onClose }: ModelProfileProps) {
   const allPhotos = [modelo.fotoPrincipal, ...modelo.fotos].filter(Boolean);
   const [activeIndex, setActiveIndex] = useState(0);
+  const status = availabilityLabel(modelo);
+  const effectiveStatus =
+    modelo.availabilityStatus ??
+    (modelo.disponible ? "disponible" : "ocupada");
+  const canContact =
+    effectiveStatus === "disponible" ||
+    (effectiveStatus === "ocupada" && modelo.canScheduleNext !== false);
 
   const goTo = (index: number) => {
     setActiveIndex(index);
@@ -151,6 +160,27 @@ export default function ModelProfile({ modelo, onClose }: ModelProfileProps) {
             <h2 className="font-heading text-3xl sm:text-4xl font-semibold text-white tracking-wide mb-2 pr-10">
               {modelo.nombre}
             </h2>
+            <div className="mb-5">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                Calificación de clientes
+              </p>
+              <CustomerRating
+                average={modelo.clientRatingAverage}
+                count={modelo.clientRatingCount}
+              />
+            </div>
+            <div className="mb-5 border border-[#C5A55A]/30 bg-[#C5A55A]/5 px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#C5A55A]">
+                Disponibilidad
+              </p>
+              <p className="mt-1 text-sm text-zinc-200">{status}</p>
+              {modelo.availabilityStatus === "ocupada" &&
+                modelo.canScheduleNext !== false && (
+                  <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+                    Puedes solicitar el siguiente turno desde Telegram.
+                  </p>
+                )}
+            </div>
             <div className="w-12 h-px bg-[#C5A55A]/60 mb-6" />
 
             {/* Descripcion con whitespace-pre-wrap para respetar saltos de linea */}
@@ -205,7 +235,7 @@ export default function ModelProfile({ modelo, onClose }: ModelProfileProps) {
             )}
 
             {/* Link de contacto */}
-            {modelo.contactLink && (
+            {modelo.contactLink && canContact && (
               <a
                 href={modelo.contactLink}
                 target="_blank"
@@ -223,6 +253,15 @@ export default function ModelProfile({ modelo, onClose }: ModelProfileProps) {
                 </svg>
                 {modelo.contactLabel || "Contacto"}
               </a>
+            )}
+            {!canContact && (
+              <button
+                type="button"
+                disabled
+                className="flex w-full cursor-not-allowed items-center justify-center border border-zinc-800 bg-zinc-950 px-5 py-4 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-600"
+              >
+                {status}
+              </button>
             )}
           </div>
         </div>

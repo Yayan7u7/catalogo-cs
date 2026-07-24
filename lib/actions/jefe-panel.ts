@@ -87,12 +87,19 @@ export async function decidePendingService(
   serviceId: string,
   decision: "aceptar" | "rechazar",
   transportType: "chofer" | "uber" = "chofer",
+  bossNotes?: string,
 ) {
   try {
     await assertOwnedService(serviceId);
     await apiFetch(`/services/${serviceId}/${decision}`, {
       method: "POST",
-      body: decision === "aceptar" ? JSON.stringify({ transportType }) : undefined,
+      body:
+        decision === "aceptar"
+          ? JSON.stringify({
+              transportType,
+              bossNotes: bossNotes?.trim() || undefined,
+            })
+          : undefined,
     });
     return { success: true };
   } catch (error) {

@@ -2,18 +2,23 @@
 
 import { apiFetch } from "@/lib/api-server";
 import { isRedirectError } from "@/lib/auth";
+import { getStaffTrustScores } from "@/lib/staff-reliability";
 
-// TODO: verificar si GET /users?rol=jefe existe en el backend o si hay un endpoint especifico para listar jefes
-export async function getJefesAction(): Promise<{ id: string; email: string; nombre?: string | null; apellido?: string | null }[]> {
+export async function getJefesAction(): Promise<{ id: string; email: string; nombre?: string | null; apellido?: string | null; trustScore?: number | null }[]> {
   try {
-    const users = await apiFetch<any[]>("/users?rol=jefe", {
-      authenticated: true,
-    });
+    const [users, trustScores] = await Promise.all([
+      apiFetch<any[]>("/users?rol=jefe", {
+        authenticated: true,
+      }),
+      getStaffTrustScores(),
+    ]);
+
     return users.map((u: any) => ({
       id: u.id,
       email: u.email,
       nombre: u.nombre,
       apellido: u.apellido,
+      trustScore: trustScores[u.id] ?? null,
     }));
   } catch (error) {
     if (isRedirectError(error)) throw error;

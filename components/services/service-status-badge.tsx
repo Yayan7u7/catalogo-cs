@@ -7,18 +7,18 @@ type Props = {
 export default function ServiceStatusBadge({ status }: Props) {
   const colors: Record<ServiceStatus, string> = {
     pendiente: "bg-yellow-500/20 text-yellow-400",
+    agendado: "bg-purple-500/20 text-purple-300",
     en_curso: "bg-cyan-500/20 text-cyan-400",
     finalizado: "bg-green-500/20 text-green-400",
     cancelado: "bg-red-500/20 text-red-400",
-    pendiente_encadenado: "bg-purple-500/20 text-purple-400",
   };
 
   const labels: Record<ServiceStatus, string> = {
     pendiente: "Pendiente",
+    agendado: "Agendado",
     en_curso: "En Curso",
     finalizado: "Finalizado",
     cancelado: "Cancelado",
-    pendiente_encadenado: "Encadenado",
   };
 
   return (

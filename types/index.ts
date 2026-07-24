@@ -17,11 +17,17 @@ export interface Modelo {
   contactLink: string;
   contactLabel: string;
   disponible: boolean;
+  availabilityStatus?: "disponible" | "ocupada" | "inactiva";
+  estimatedAvailableAt?: string | null;
+  canScheduleNext?: boolean;
   precioBaseHora: number;
   jefeId?: string | null;
   jefeSecundarioId?: string | null;
   apartmentId?: string | null;
   usuarioId?: string | null;
+  trustScore?: number | null;
+  clientRatingAverage?: number | null;
+  clientRatingCount?: number;
   createdAt?: string;
   updatedAt?: string;
   extras?: ServiceExtra[];

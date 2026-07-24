@@ -1,24 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { jwtVerify } from "jose";
-
-const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_key";
-const encodedSecret = new TextEncoder().encode(JWT_SECRET);
-const COOKIE_NAME = "cs_admin_session";
-
-async function verifyToken(token: string) {
-  try {
-    const { payload } = await jwtVerify(token, encodedSecret);
-    return payload;
-  } catch (error) {
-    return null;
-  }
-}
+import { ACCESS_COOKIE } from "@/lib/auth-constants";
 
 export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
-  // Redirigir/Reescribir las peticiones de /api/:path* hacia el backend de NestJS
+  // 1. Proxy /api/* requests to NestJS backend (excluding Next.js internal API routes)
   if (
     pathname.startsWith("/api/") &&
     !pathname.startsWith("/api/assistant") &&
@@ -31,56 +18,39 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(targetUrl);
   }
 
-  // Protección de rutas de administración
-  if (pathname.startsWith("/admin")) {
-    const token = request.cookies.get(COOKIE_NAME)?.value;
-    const session = token ? await verifyToken(token) : null;
-    const role = (session?.user as { rol?: string } | undefined)?.rol;
+  // 2. Auth checks for /admin and /jefe routes
+  const isAdminRoute = pathname.startsWith("/admin");
+  const isJefeRoute = pathname.startsWith("/jefe");
 
-    if (session && role === "admin") {
-      if (pathname === "/admin") {
-        return NextResponse.redirect(new URL("/admin/modelos", request.url));
-      }
-    } else if (session && role === "jefe") {
-      if (pathname === "/admin") {
-        return NextResponse.redirect(new URL("/jefe", request.url));
-      }
-    } else {
-      if (pathname !== "/admin") {
-        const response = NextResponse.redirect(new URL("/admin", request.url));
-        if (token) {
-          response.cookies.delete(COOKIE_NAME);
-        }
-        return response;
-      }
-    }
-  }
+  if (isAdminRoute || isJefeRoute) {
+    const hasAccessCookie = request.cookies.has(ACCESS_COOKIE);
 
-  if (pathname.startsWith("/jefe")) {
-    const token = request.cookies.get(COOKIE_NAME)?.value;
-    const session = token ? await verifyToken(token) : null;
-    const role = (session?.user as { rol?: string } | undefined)?.rol;
+    // A) If trying to access login page (/admin)
+    if (pathname === "/admin") {
+      return NextResponse.next();
+    }
 
-    if (!session) {
-      const response = NextResponse.redirect(new URL("/admin", request.url));
-      if (token) {
-        response.cookies.delete(COOKIE_NAME);
+    // B) Protected /admin/* routes (excluding exact /admin)
+    if (isAdminRoute) {
+      if (!hasAccessCookie) {
+        return NextResponse.redirect(new URL("/admin", request.url));
       }
-      return response;
+      return NextResponse.next();
     }
-    if (role === "admin") {
-      return NextResponse.redirect(new URL("/admin/dashboard", request.url));
-    }
-    if (role !== "jefe") {
-      const response = NextResponse.redirect(new URL("/admin", request.url));
-      return response;
+
+    // C) Protected /jefe/* routes
+    if (isJefeRoute) {
+      if (!hasAccessCookie) {
+        return NextResponse.redirect(new URL("/admin", request.url));
+      }
+
+      return NextResponse.next();
     }
   }
 
   return NextResponse.next();
 }
 
-// Configurar el matcher para interceptar la API y el panel de administración
 export const config = {
   matcher: ["/api/:path*", "/admin/:path*", "/jefe/:path*"],
 };
