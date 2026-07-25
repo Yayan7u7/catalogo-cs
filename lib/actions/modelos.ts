@@ -4,10 +4,10 @@ import { isRedirectError } from "@/lib/auth";
 import type { Modelo, ModeloPayload } from "@/types";
 import { revalidatePath } from "next/cache";
 import { apiFetch } from "@/lib/api-server";
+import { getEmployeeHireTelegramUrl } from "@/lib/telegram-links";
 
 // Mapeador de Empleadas (backend) a Modelo (frontend)
 function mapToModelo(emp: any): Modelo {
-  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "ChambaPastelesBot";
   return {
     _id: emp.id,
     nombre: emp.nombreArtistico, // Mapeado por compatibilidad
@@ -17,7 +17,7 @@ function mapToModelo(emp: any): Modelo {
     fotoPrincipal: emp.fotoPerfilUrl || "",
     fotos: emp.empleadaFotos ? emp.empleadaFotos.map((f: any) => f.url) : [],
     linkX: emp.linkX || "",
-    contactLink: `https://t.me/${botUsername}?start=contratar_${emp.id}`,
+    contactLink: getEmployeeHireTelegramUrl(emp.id),
     contactLabel: emp.contactLabel || "Contacto",
     disponible: emp.disponible,
     availabilityStatus: emp.availabilityStatus,

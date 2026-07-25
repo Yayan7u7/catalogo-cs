@@ -1,11 +1,12 @@
 "use client";
 
 import { FaTelegramPlane } from "react-icons/fa";
+import { getGroupServiceTelegramUrl } from "@/lib/telegram-links";
 
 export default function TelegramFloat() {
   return (
     <a
-      href="https://t.me/pruebaPasteles_bot"
+      href={getGroupServiceTelegramUrl()}
       target="_blank"
       rel="noopener noreferrer"
       className="
