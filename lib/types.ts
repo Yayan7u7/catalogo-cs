@@ -81,6 +81,7 @@ export type ServiceStatus =
 
 export type Service = {
   id: string;
+  serviceType?: "individual" | "grupal";
   empleadaId: string;
   clienteId: string;
   jefeId: string;
@@ -93,6 +94,11 @@ export type Service = {
   totalBase: string;
   totalExtras: string;
   totalFinal: string;
+  totalPaid?: number;
+  pendingBalance?: number;
+  transportFeeSnapshot?: number;
+  manualTransportAdjustment?: number;
+  pendingDurationHours?: number | null;
   totalTransporte?: string;
   customerTransportCharge?: number | null;
   actualTransportCost?: number;
@@ -121,6 +127,8 @@ export type Service = {
   updatedAt: string;
   estadoLiquidacion?: "transporte_pendiente" | "cerrada";
   viajes?: Trip[];
+  participantes?: ServiceParticipant[];
+  pagos?: ServicePayment[];
   cliente?: Client;
   empleada?: Employee;
 };
@@ -128,6 +136,7 @@ export type Service = {
 export type Trip = {
   id: string;
   servicioId: string;
+  unitNumber?: number;
   choferId: string | null;
   tipo: "ida" | "regreso";
   estado: "notificado" | "aceptado" | "en_camino" | "llegado" | "en_curso" | "finalizado" | "rechazado" | "cancelado";
@@ -138,12 +147,88 @@ export type Trip = {
   fareConfirmedAt?: string | null;
   fareConfirmationOverride?: boolean;
   driverSettlementId?: string | null;
+  passengers?: TripPassenger[];
+};
+
+export type ServiceParticipant = {
+  id: string;
+  serviceId: string;
+  employeeId: string;
+  role: "responsable" | "participante";
+  status: "reservada" | "pendiente_pago" | "activa" | "retirada" | "cancelada";
+  hourlyRateSnapshot: number;
+  billableHours: number;
+  confirmedSubtotal: number;
+  holdExpiresAt: string | null;
+  joinedAt: string | null;
+  removedAt: string | null;
+  employee?: Employee;
+};
+
+export type ServicePayment = {
+  id: string;
+  serviceId: string;
+  amount: number;
+  status: "pendiente" | "aprobado" | "rechazado";
+  fingerprint: string | null;
+  notes: string | null;
+  createdAt: string;
+};
+
+export type TripPassenger = {
+  id: string;
+  tripId: string;
+  employeeId: string;
+  employee?: Employee;
+};
+
+export type GroupRequestSelection = {
+  id: string;
+  requestId: string;
+  employeeId: string;
+  status: "seleccionada" | "reservada" | "liberada" | "confirmada";
+  selectedBy: "cliente" | "jefe";
+  hourlyRateSnapshot: number;
+  expiresAt: string;
+  employee?: Employee;
+};
+
+export type GroupServiceRequest = {
+  id: string;
+  clientId: string;
+  bossId: string;
+  initialEmployeeId: string | null;
+  serviceId: string | null;
+  status:
+    | "esperando_jefe"
+    | "seleccionando"
+    | "reservada"
+    | "esperando_pago"
+    | "confirmada"
+    | "vencida"
+    | "cancelada";
+  durationHours: number | null;
+  paymentMethod: "efectivo" | "tarjeta" | "transferencia" | "mixto" | null;
+  locationLat: number | null;
+  locationLng: number | null;
+  locationReference: string | null;
+  catalogVersion: number;
+  holdExpiresAt: string | null;
+  telegramThreadId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  client?: Client;
+  boss?: ApiUser;
+  initialEmployee?: Employee;
+  selections: GroupRequestSelection[];
+  service?: Service | null;
 };
 
 export type ConversationMessage = {
   id: string;
   clienteId: string;
-  servicioId: string;
+  servicioId: string | null;
+  groupRequestId?: string | null;
   bookingSessionId?: string | null;
   emisor: "ia" | "jefe" | "cliente" | "sistema";
   mensaje: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { ButtonHTMLAttributes, Dispatch, SetStateAction } from "react";
 import { Award, Banknote, Car, Check, CircleDollarSign, Clock3, MapPin, MessageCircle, Pencil, Repeat2, Search, Send, Smartphone, Star, UserRoundCheck, UserRoundX, X } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import {
   changeTripTransport,
   confirmUberFare,
   decidePendingService,
+  getGroupServiceRequests,
   getServiceMessages,
   getJefeCashObligations,
   getJefeEmployees,
@@ -22,19 +23,27 @@ import {
 } from "@/lib/actions/jefe-panel";
 import type { CashObligationSummary, ConversationMessage, Employee, Service, Trip } from "@/lib/types";
 import { formatAvailabilityTime } from "@/lib/availability";
+import GroupServiceOrganizer from "@/components/jefe/GroupServiceOrganizer";
+import type { GroupServiceRequest } from "@/lib/types";
 
-export default function TeamOperations({ initialEmployees, initialServices, initialCashSummary }: { initialEmployees: Employee[]; initialServices: Service[]; initialCashSummary: CashObligationSummary }) {
+export default function TeamOperations({ initialEmployees, initialServices, initialCashSummary, initialGroupRequests }: { initialEmployees: Employee[]; initialServices: Service[]; initialCashSummary: CashObligationSummary; initialGroupRequests: GroupServiceRequest[] }) {
   const [employees, setEmployees] = useState(initialEmployees);
   const [services, setServices] = useState(initialServices);
+  const [groupRequests, setGroupRequests] = useState(initialGroupRequests);
   const [query, setQuery] = useState("");
   const [historyEmployeeId, setHistoryEmployeeId] = useState("all");
-  const [tab, setTab] = useState<"equipo" | "activos" | "historial" | "efectivo">("equipo");
+  const [tab, setTab] = useState<"equipo" | "grupos" | "activos" | "historial" | "efectivo">("equipo");
   const [cashSummary, setCashSummary] = useState(initialCashSummary);
   const [chatService, setChatService] = useState<Service | null>(null);
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [acceptingService, setAcceptingService] = useState<Service | null>(null);
   const [selectedEvaluationUser, setSelectedEvaluationUser] = useState<{ id: string; name: string } | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const chatServiceRef = useRef<Service | null>(null);
+  useEffect(() => {
+    chatServiceRef.current = chatService;
+  }, [chatService]);
 
   const visibleEmployees = useMemo(() => employees.filter((employee) => employee.nombreArtistico.toLowerCase().includes(query.toLowerCase())), [employees, query]);
   const active = services.filter((service) => ["pendiente", "agendado", "en_curso"].includes(service.estado) || (service.estado === "finalizado" && service.estadoLiquidacion === "transporte_pendiente"));
@@ -49,32 +58,83 @@ export default function TeamOperations({ initialEmployees, initialServices, init
     try { setEmployees(await getJefeEmployees()); } catch { toast.error("No se pudo actualizar la disponibilidad"); }
   }
 
+  async function reloadGroupRequests() {
+    try { setGroupRequests(await getGroupServiceRequests()); } catch { /* silenciar error en refresco secundario */ }
+  }
+
+  async function reloadCashSummary() {
+    try { setCashSummary(await getJefeCashObligations()); } catch { /* silenciar error en refresco secundario */ }
+  }
+
   useEffect(() => {
-    const source = new EventSource("/api/realtime/sse", {
-      withCredentials: true
-    });
-    source.onopen = () => {
-      void reloadServices();
-      void reloadEmployees();
-    };
-    source.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.type === "heartbeat") return;
-        if (payload.type === "chat_message") {
-          const message = payload.data as ConversationMessage;
-          if (chatService?.id === message.servicioId) setMessages((current) => current.some((item) => item.id === message.id) ? current : [...current, message]);
-        } else {
-          void reloadServices();
-          void reloadEmployees();
+    let source: EventSource | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function connect() {
+      source = new EventSource("/api/realtime/sse", {
+        withCredentials: true,
+      });
+
+      source.onopen = () => {
+        window.dispatchEvent(new Event("jefe-realtime-open"));
+        void reloadServices();
+        void reloadEmployees();
+        void reloadGroupRequests();
+        void reloadCashSummary();
+        if (chatServiceRef.current) {
+          void getServiceMessages(chatServiceRef.current.id)
+            .then(setMessages)
+            .catch(() => {
+              /* El siguiente evento o apertura manual volverá a reconciliar. */
+            });
         }
-      } catch { /* La siguiente actualización válida reconciliará el estado. */ }
+      };
+
+      source.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          window.dispatchEvent(
+            new CustomEvent("jefe-realtime-event", { detail: payload }),
+          );
+          if (payload.type === "heartbeat") return;
+
+          if (payload.type === "chat_message") {
+            const message = payload.data as ConversationMessage;
+            if (chatServiceRef.current?.id === message.servicioId) {
+              setMessages((current) => (current.some((item) => item.id === message.id) ? current : [...current, message]));
+            }
+            void reloadServices();
+          } else {
+            void reloadServices();
+            void reloadEmployees();
+            void reloadGroupRequests();
+            void reloadCashSummary();
+          }
+        } catch { /* La siguiente actualización válida reconciliará el estado. */ }
+      };
+
+      source.onerror = () => {
+        window.dispatchEvent(new Event("jefe-realtime-reconnecting"));
+        if (source) {
+          source.close();
+          source = null;
+        }
+        if (!reconnectTimer) {
+          reconnectTimer = setTimeout(() => {
+            reconnectTimer = null;
+            connect();
+          }, 3000);
+        }
+      };
+    }
+
+    connect();
+
+    return () => {
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (source) source.close();
     };
-    source.onerror = () => {
-      console.warn("La conexión en tiempo real se interrumpió; se intentará reconectar.");
-    };
-    return () => source.close();
-  }, [chatService?.id]);
+  }, []);
 
   function toggleAvailability(employee: Employee) {
     startTransition(async () => {
@@ -109,9 +169,10 @@ export default function TeamOperations({ initialEmployees, initialServices, init
 
   return <>
     <header className="mb-7"><p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-[#C5A55A]">Operación diaria</p><h1 className="font-heading text-4xl font-semibold sm:text-5xl">Mi equipo</h1><p className="mt-2 text-sm text-zinc-500">Disponibilidad, servicios, transporte y conversaciones de tu equipo.</p></header>
-    <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl border border-zinc-800 bg-zinc-950 p-1.5 sm:grid-cols-4">{([['equipo', 'Disponibilidad'], ['activos', `Activos (${active.length})`], ['historial', 'Historial'], ['efectivo', 'Efectivo']] as const).map(([value, label]) => <button key={value} onClick={() => setTab(value)} className={`rounded-lg px-2 py-3 text-[10px] font-semibold uppercase tracking-wider ${tab === value ? "bg-[#C5A55A] text-black" : "text-zinc-500 hover:text-white"}`}>{label}</button>)}</div>
+    <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl border border-zinc-800 bg-zinc-950 p-1.5 sm:grid-cols-5">{([['equipo', 'Disponibilidad'], ['grupos', `Grupos (${groupRequests.length})`], ['activos', `Activos (${active.length})`], ['historial', 'Historial'], ['efectivo', 'Efectivo']] as const).map(([value, label]) => <button key={value} onClick={() => setTab(value)} className={`rounded-lg px-2 py-3 text-[10px] font-semibold uppercase tracking-wider ${tab === value ? "bg-[#C5A55A] text-black" : "text-zinc-500 hover:text-white"}`}>{label}</button>)}</div>
     {tab === "historial" && <label className="mb-5 block"><span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#C5A55A]">Filtrar por empleada</span><select value={historyEmployeeId} onChange={(event) => setHistoryEmployeeId(event.target.value)} className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:border-[#C5A55A] sm:max-w-sm"><option value="all">Todas las empleadas</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.nombreArtistico}</option>)}</select></label>}
-    {tab === "equipo" ? <section><label className="mb-5 flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950 px-4 focus-within:border-[#C5A55A]/70"><Search size={18} className="text-[#C5A55A]" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar empleada" className="w-full bg-transparent py-4 text-sm text-white outline-none placeholder:text-zinc-600" /></label><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{visibleEmployees.map((employee) => <article key={employee.id} className={`overflow-hidden rounded-2xl border bg-zinc-950 ${employee.disponible ? "border-[#C5A55A]/55" : "border-zinc-800"}`}><div className="h-36 bg-cover bg-center" style={employee.fotoPerfilUrl ? { backgroundImage: `linear-gradient(to top, #090909, transparent), url(${employee.fotoPerfilUrl})` } : { background: "linear-gradient(135deg,#18181b,#050505)" }} /><div className="p-5"><div className="mb-4 flex items-start justify-between"><div><h2 className="font-heading text-2xl font-semibold">{employee.nombreArtistico}</h2><p className="mt-1 flex items-center gap-1 text-xs text-zinc-500"><MapPin size={12} />{employee.ubicacionLat ? "Ubicación recibida" : "Sin ubicación"}</p>{employee.availabilityStatus === "ocupada" && <p className="mt-2 text-xs text-[#E8D5A3]">Ocupada{employee.estimatedAvailableAt ? ` hasta ${formatAvailabilityTime(employee.estimatedAvailableAt)}` : ""}</p>}<EmployeeRatingSummary employee={employee} /></div><span className={`h-3 w-3 rounded-full ${employee.disponible ? "bg-emerald-400" : "bg-zinc-700"}`} /></div><div className="space-y-2"><button disabled={pending} onClick={() => toggleAvailability(employee)} className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#C5A55A] py-3 text-xs font-bold uppercase tracking-wider text-[#C5A55A] disabled:opacity-50">{employee.disponible ? <UserRoundX size={18} /> : <UserRoundCheck size={18} />}{employee.disponible ? "Marcar no disponible" : "Marcar disponible"}</button><button type="button" onClick={() => setSelectedEvaluationUser({ id: employee.usuarioId || employee.id, name: employee.nombreArtistico })} className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/80 py-2.5 text-xs font-semibold uppercase tracking-wider text-zinc-300 hover:border-[#C5A55A] hover:text-[#C5A55A] transition-all"><Award size={16} />Historial de Exámenes</button></div></div></article>)}</div></section> : tab === "efectivo" ? <CashDeliveryPanel summary={cashSummary} pending={pending} run={(action) => startTransition(async () => { const result = await action(); if (!result.success) { toast.error(result.error); return; } setCashSummary(await getJefeCashObligations()); toast.success("Entrega de efectivo registrada"); })} /> : <ServiceList services={tab === "activos" ? active : filteredHistory} allServices={services} active={tab === "activos"} disabled={pending} onDecide={decide} onRequestAccept={setAcceptingService} onChat={openChat} onRefresh={reloadServices} />}
+    {tab === "equipo" ? <section><label className="mb-5 flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950 px-4 focus-within:border-[#C5A55A]/70"><Search size={18} className="text-[#C5A55A]" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar empleada" className="w-full bg-transparent py-4 text-sm text-white outline-none placeholder:text-zinc-600" /></label><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{visibleEmployees.map((employee) => <article key={employee.id} className={`overflow-hidden rounded-2xl border bg-zinc-950 ${employee.disponible ? "border-[#C5A55A]/55" : "border-zinc-800"}`}><div className="h-36 bg-cover bg-center" style={employee.fotoPerfilUrl ? { backgroundImage: `linear-gradient(to top, #090909, transparent), url(${employee.fotoPerfilUrl})` } : { background: "linear-gradient(135deg,#18181b,#050505)" }} /><div className="p-5"><div className="mb-4 flex items-start justify-between"><div><h2 className="font-heading text-2xl font-semibold">{employee.nombreArtistico}</h2><p className="mt-1 flex items-center gap-1 text-xs text-zinc-500"><MapPin size={12} />{employee.ubicacionLat ? "Ubicación recibida" : "Sin ubicación"}</p>{employee.availabilityStatus === "ocupada" && <p className="mt-2 text-xs text-[#E8D5A3]">Ocupada{employee.estimatedAvailableAt ? ` hasta ${formatAvailabilityTime(employee.estimatedAvailableAt)}` : ""}</p>}<EmployeeRatingSummary employee={employee} /></div><span className={`h-3 w-3 rounded-full ${employee.disponible ? "bg-emerald-400" : "bg-zinc-700"}`} /></div><div className="space-y-2"><button disabled={pending} onClick={() => toggleAvailability(employee)} className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#C5A55A] py-3 text-xs font-bold uppercase tracking-wider text-[#C5A55A] disabled:opacity-50">{employee.disponible ? <UserRoundX size={18} /> : <UserRoundCheck size={18} />}{employee.disponible ? "Marcar no disponible" : "Marcar disponible"}</button><button type="button" onClick={() => setSelectedEvaluationUser({ id: employee.usuarioId || employee.id, name: employee.nombreArtistico })} className="flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/80 py-2.5 text-xs font-semibold uppercase tracking-wider text-zinc-300 hover:border-[#C5A55A] hover:text-[#C5A55A] transition-all"><Award size={16} />Historial de Exámenes</button></div></div></article>)}</div></section> : tab === "grupos" ? <GroupServiceOrganizer initialRequests={groupRequests} /> : tab === "efectivo" ? <CashDeliveryPanel summary={cashSummary} pending={pending} run={(action) => startTransition(async () => { const result = await action(); if (!result.success) { toast.error(result.error); return; } setCashSummary(await getJefeCashObligations()); toast.success("Entrega de efectivo registrada"); })} /> : <ServiceList services={tab === "activos" ? active : filteredHistory} allServices={services} active={tab === "activos"} disabled={pending} onDecide={decide} onRequestAccept={setAcceptingService} onChat={openChat} onRefresh={reloadServices} />}
+
     {chatService && <ChatPanel service={chatService} messages={messages} setMessages={setMessages} onClose={() => setChatService(null)} />}
     {acceptingService && <AcceptServiceDialog service={acceptingService} previousService={services.find((item) => item.id === acceptingService.servicioPrevioId)} disabled={pending} onClose={() => setAcceptingService(null)} onAccept={(transport, notes) => decide(acceptingService, "aceptar", transport, notes)} />}
     <EvaluationHistorySheet userId={selectedEvaluationUser?.id ?? null} workerName={selectedEvaluationUser?.name} open={Boolean(selectedEvaluationUser)} onOpenChange={(open) => !open && setSelectedEvaluationUser(null)} />

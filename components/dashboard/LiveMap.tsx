@@ -64,41 +64,58 @@ export default function LiveMap({ employees, drivers }: Props) {
   }, [employees]);
 
   useEffect(() => {
-    const eventSource = new EventSource("/api/realtime/sse", {
-      withCredentials: true
-    });
+    let eventSource: EventSource | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-    eventSource.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.type === "DRIVER_LOCATION_UPDATE" && payload.choferId) {
-          setLocalDrivers((prev) =>
-            prev.map((d) =>
-              d.id === payload.choferId
-                ? { ...d, ubicacionLat: payload.lat, ubicacionLng: payload.lng }
-                : d,
-            ),
-          );
-        } else if (payload.type === "EMPLOYEE_LOCATION_UPDATE" && payload.empleadaId) {
-          setLocalEmployees((prev) =>
-            prev.map((e) =>
-              e.id === payload.empleadaId
-                ? { ...e, ubicacionLat: payload.lat, ubicacionLng: payload.lng }
-                : e,
-            ),
-          );
+    function connect() {
+      eventSource = new EventSource("/api/realtime/sse", {
+        withCredentials: true,
+      });
+
+      eventSource.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          if (payload.type === "DRIVER_LOCATION_UPDATE" && payload.choferId) {
+            setLocalDrivers((prev) =>
+              prev.map((d) =>
+                d.id === payload.choferId
+                  ? { ...d, ubicacionLat: payload.lat, ubicacionLng: payload.lng }
+                  : d,
+              ),
+            );
+          } else if (payload.type === "EMPLOYEE_LOCATION_UPDATE" && payload.empleadaId) {
+            setLocalEmployees((prev) =>
+              prev.map((e) =>
+                e.id === payload.empleadaId
+                  ? { ...e, ubicacionLat: payload.lat, ubicacionLng: payload.lng }
+                  : e,
+              ),
+            );
+          }
+        } catch {
+          /* Ignorar errores de parseo puntuales */
         }
-      } catch (err) {
-        console.error("Error al decodificar evento SSE:", err);
-      }
-    };
+      };
 
-    eventSource.onerror = (err) => {
-      console.error("Error en la conexion SSE:", err);
-    };
+      eventSource.onerror = () => {
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+        if (!reconnectTimer) {
+          reconnectTimer = setTimeout(() => {
+            reconnectTimer = null;
+            connect();
+          }, 3000);
+        }
+      };
+    }
+
+    connect();
 
     return () => {
-      eventSource.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (eventSource) eventSource.close();
     };
   }, []);
 
