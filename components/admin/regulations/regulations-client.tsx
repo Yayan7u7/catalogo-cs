@@ -93,6 +93,11 @@ export default function RegulationsClient() {
         setQuestions([{ text: "", options: [{ text: "", isCorrect: true }, { text: "", isCorrect: false }] }]);
       }
       toast.success("Formulario precargado con el reglamento actual");
+      
+      const formElement = document.getElementById("regulation-form");
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
     }
   };
 
@@ -162,17 +167,39 @@ export default function RegulationsClient() {
     }
   };
 
+  const buttonText = isSubmitting 
+    ? "Guardando..." 
+    : currentRegulation 
+      ? "Guardar Cambios" 
+      : "Publicar Reglamento";
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <PageHeader 
-        title="Gestión de Reglamentos" 
-        description="Publica o actualiza el reglamento de trabajo y su cuestionario de evaluación." 
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <PageHeader 
+          title="Gestión de Reglamentos" 
+          description="Publica o actualiza el reglamento de trabajo y su cuestionario de evaluación." 
+        />
+        <button
+          type="button"
+          onClick={() => {
+            const formElement = document.getElementById("regulation-form") as HTMLFormElement | null;
+            if (formElement) {
+              formElement.requestSubmit();
+            }
+          }}
+          disabled={isSubmitting}
+          className="flex items-center justify-center gap-2 bg-[#C5A55A] text-black font-bold px-6 py-3 rounded-full hover:bg-[#D4AF37] hover:shadow-[0_0_20px_rgba(197,165,90,0.5)] active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md self-start sm:self-auto mb-4 sm:mb-0"
+        >
+          <Save className="w-5 h-5" />
+          {buttonText}
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Lado Izquierdo: Formulario */}
         <div className="lg:col-span-2 space-y-6">
-          <form onSubmit={handleSubmit} className="bg-zinc-950 border border-zinc-800 rounded-3xl p-6 shadow-md space-y-6">
+          <form id="regulation-form" onSubmit={handleSubmit} className="bg-zinc-950 border border-zinc-800 rounded-3xl p-6 shadow-md space-y-6">
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <SelectField
@@ -299,10 +326,10 @@ export default function RegulationsClient() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex items-center gap-2 bg-brand-gold text-black font-bold px-6 py-3 rounded-full hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 bg-[#C5A55A] text-black font-bold px-6 py-3 rounded-full hover:bg-[#D4AF37] hover:shadow-[0_0_20px_rgba(197,165,90,0.5)] active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
               >
                 <Save className="w-5 h-5" />
-                {isSubmitting ? "Publicando..." : "Publicar Reglamento"}
+                {buttonText}
               </button>
             </div>
           </form>
@@ -312,7 +339,7 @@ export default function RegulationsClient() {
         <div className="space-y-6">
           <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-6 shadow-md">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Eye className="w-5 h-5 text-brand-gold" />
+              <Eye className="w-5 h-5 text-[#C5A55A]" />
               Reglamento Vigente
             </h3>
             
@@ -322,7 +349,7 @@ export default function RegulationsClient() {
               <div className="space-y-4">
                 <div>
                   <p className="text-xs text-zinc-500 uppercase tracking-widest">Rol</p>
-                  <p className="text-sm font-medium capitalize text-brand-gold">{currentRegulation.targetRole}</p>
+                  <p className="text-sm font-medium capitalize text-[#C5A55A]">{currentRegulation.targetRole}</p>
                 </div>
                 <div>
                   <p className="text-xs text-zinc-500 uppercase tracking-widest">Título</p>
@@ -344,7 +371,7 @@ export default function RegulationsClient() {
                 <div className="pt-4 border-t border-zinc-800">
                   <button
                     onClick={handlePreFill}
-                    className="w-full py-2 px-4 rounded-xl border border-brand-gold text-brand-gold text-sm font-medium hover:bg-brand-gold hover:text-black transition-colors"
+                    className="w-full py-2.5 px-4 rounded-xl border border-[#C5A55A] text-[#C5A55A] bg-[#C5A55A]/10 text-sm font-semibold hover:bg-[#C5A55A]/20 hover:border-[#D4AF37] hover:text-white transition-all duration-200"
                   >
                     Editar Reglamento Vigente
                   </button>

@@ -15,6 +15,7 @@ import InputField from "../ui/InputField";
 import SearchBar from "../ui/SearchBar";
 import CreateButton from "../ui/CreateButton";
 import ReliabilityRating from "../ui/ReliabilityRating";
+import EvaluationHistorySheet from "./evaluations/evaluation-history-sheet";
 
 interface Chofer {
   id: string;
@@ -71,6 +72,7 @@ export default function ChoferesDashboard({ initialChoferes }: ChoferesDashboard
 
   const [confirmDelete, setConfirmDelete] = useState<Chofer | null>(null);
   const [otpCodes, setOtpCodes] = useState<Record<string, string>>({});
+  const [selectedEvaluationUser, setSelectedEvaluationUser] = useState<{ id: string; name: string } | null>(null);
 
   const handleSaveChofer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -445,6 +447,17 @@ export default function ChoferesDashboard({ initialChoferes }: ChoferesDashboard
                       Editar
                     </button>
                     <button
+                      onClick={() =>
+                        setSelectedEvaluationUser({
+                          id: chofer.usuarioId || chofer.id,
+                          name: chofer.nombre,
+                        })
+                      }
+                      className="text-[10px] font-bold tracking-widest text-[#C5A55A] uppercase hover:text-white transition-colors"
+                    >
+                      Exámenes
+                    </button>
+                    <button
                       onClick={() => setConfirmDelete(chofer)}
                       className="text-[10px] font-bold tracking-widest text-zinc-500 uppercase hover:text-red-400 transition-colors"
                     >
@@ -457,6 +470,13 @@ export default function ChoferesDashboard({ initialChoferes }: ChoferesDashboard
           </table>
         </div>
       )}
+
+      <EvaluationHistorySheet
+        userId={selectedEvaluationUser?.id ?? null}
+        workerName={selectedEvaluationUser?.name}
+        open={Boolean(selectedEvaluationUser)}
+        onOpenChange={(open) => !open && setSelectedEvaluationUser(null)}
+      />
     </div>
   );
 }

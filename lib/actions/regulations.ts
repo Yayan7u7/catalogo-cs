@@ -49,3 +49,27 @@ export async function getCurrentRegulationAction(targetRole: "empleada" | "chofe
     return { success: false, error: error.message || "Failed to fetch current regulation" };
   }
 }
+
+export async function getUserAttemptsAction(userId: string) {
+  try {
+    const result = await apiFetch(`/employee-onboarding/user-attempts/${userId}`, {
+      method: "GET",
+    });
+    return { success: true, data: result };
+  } catch (error: any) {
+    console.error("Error fetching user attempts:", error);
+    return { success: false, error: error.message || "Failed to fetch user attempts" };
+  }
+}
+
+export async function getAttemptDetailAction(attemptId: string) {
+  try {
+    const result = await apiFetch(`/employee-onboarding/attempts/${attemptId}`, {
+      method: "GET",
+    });
+    return { success: true, data: result };
+  } catch (error: any) {
+    console.error("Error fetching attempt detail:", error);
+    return { success: false, error: error.message || "Failed to fetch attempt detail" };
+  }
+}
