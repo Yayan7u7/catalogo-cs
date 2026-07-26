@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import type { Modelo } from "@/types";
+import { FaTelegramPlane } from "react-icons/fa";
+import { getGroupServiceTelegramUrl } from "@/lib/telegram-links";
 
 // Componente para particulas doradas flotantes
 function GoldParticles() {
@@ -55,6 +57,8 @@ interface HeroProps {
 }
 
 export default function Hero({ onViewCatalog, modelos, onSelectModelo }: HeroProps) {
+  const groupServiceTelegramUrl = getGroupServiceTelegramUrl();
+
   return (
     <section
       id="hero"
@@ -134,33 +138,45 @@ export default function Hero({ onViewCatalog, modelos, onSelectModelo }: HeroPro
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.9 }}
-          className="relative group mt-4"
+          className="mt-4 flex w-full flex-col items-center justify-center gap-3 sm:flex-row"
         >
-          {/* Brillo sutil de fondo */}
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-[#C5A55A]/40 to-[#E8D5A3]/40 rounded-full blur opacity-30 group-hover:opacity-70 transition duration-500" />
-          
-          <button
-            onClick={onViewCatalog}
-            className="relative flex items-center justify-center gap-3 bg-black/60 backdrop-blur-md border border-[#C5A55A]/50 text-white px-10 sm:px-14 py-4 rounded-full overflow-hidden transition-all duration-300 hover:border-[#C5A55A] hover:bg-black/80 shadow-lg shadow-black/50"
-          >
-            {/* Resplandor interior animado */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#C5A55A]/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
-            
-            <span className="relative z-10 text-[11px] sm:text-xs font-semibold tracking-[0.3em] uppercase text-zinc-100 group-hover:text-[#E8D5A3] transition-colors duration-300 drop-shadow-md">
-              Ver Catálogo
-            </span>
-
-            {/* Icono minimalista */}
-            <svg
-              className="relative z-10 w-4 h-4 text-zinc-300 group-hover:text-[#E8D5A3] transition-all duration-300 group-hover:translate-x-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
+          <div className="group relative w-full max-w-xs sm:w-auto">
+            <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-[#C5A55A]/40 to-[#E8D5A3]/40 opacity-30 blur transition duration-500 group-hover:opacity-70" />
+            <button
+              onClick={onViewCatalog}
+              className="relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-full border border-[#C5A55A]/50 bg-black/60 px-10 py-4 text-white shadow-lg shadow-black/50 backdrop-blur-md transition-all duration-300 hover:border-[#C5A55A] hover:bg-black/80 sm:w-auto sm:px-12"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </button>
+              <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-[#C5A55A]/10 to-transparent transition-transform duration-1000 ease-in-out group-hover:translate-x-full" />
+              <span className="relative z-10 text-[11px] font-semibold uppercase tracking-[0.25em] text-zinc-100 transition-colors duration-300 group-hover:text-[#E8D5A3] sm:text-xs">
+                Ver catálogo
+              </span>
+              <svg
+                className="relative z-10 h-4 w-4 text-zinc-300 transition-all duration-300 group-hover:translate-x-1 group-hover:text-[#E8D5A3]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                strokeWidth="1.5"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="group relative w-full max-w-xs sm:w-auto">
+            <div className="absolute -inset-0.5 rounded-full bg-[#229ED9]/50 opacity-35 blur transition duration-500 group-hover:opacity-75" />
+            <a
+              href={groupServiceTelegramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-full border border-[#229ED9]/70 bg-[#229ED9]/15 px-7 py-4 text-white shadow-lg shadow-black/50 backdrop-blur-md transition-all duration-300 hover:border-[#58B9E7] hover:bg-[#229ED9]/25 sm:w-auto sm:px-9"
+              aria-label="Solicitar servicio grupal mediante Telegram"
+            >
+              <FaTelegramPlane className="relative z-10 h-4 w-4 text-[#69C4ED]" />
+              <span className="relative z-10 text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-100 sm:text-xs">
+                Solicitar servicio grupal
+              </span>
+            </a>
+          </div>
         </motion.div>
 
         {/* Carrusel de Preview de Modelos */}

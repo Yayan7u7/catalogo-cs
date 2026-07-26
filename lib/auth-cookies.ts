@@ -34,9 +34,7 @@ export async function applyBackendSetCookies(response: Response) {
       const key = rawKey.toLowerCase();
       const attributeValue = rawValue.join("=");
       if (key === "httponly") options.httpOnly = true;
-      if (key === "secure") options.secure = true;
       if (key === "path") options.path = attributeValue;
-      if (key === "domain") options.domain = attributeValue;
       if (key === "max-age") options.maxAge = Number(attributeValue);
       if (key === "expires") options.expires = new Date(attributeValue);
       if (key === "samesite") {
@@ -44,6 +42,8 @@ export async function applyBackendSetCookies(response: Response) {
       }
     }
 
+    // Dejamos que Next.js infiera "Secure" según si es HTTPS o HTTP.
+    // Ignoramos el "Domain" del backend para que el navegador lo asocie a la IP actual (ej. 169.x.x.x)
     cookieStore.set(name, value, options);
   }
 }

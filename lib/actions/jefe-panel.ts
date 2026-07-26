@@ -2,7 +2,7 @@
 
 import { apiFetch } from "@/lib/api-server";
 import { getCurrentUser, isRedirectError } from "@/lib/auth";
-import type { CashObligationSummary, ConversationMessage, Employee, Service } from "@/lib/types";
+import type { CashObligationSummary, ConversationMessage, Employee, GroupServiceRequest, Service } from "@/lib/types";
 import { redirect } from "next/navigation";
 
 async function requireJefe() {
@@ -207,4 +207,205 @@ export async function sendServiceMessage(serviceId: string, message: string) {
     if (isRedirectError(error)) throw error;
     return { success: false, error: error instanceof Error ? error.message : "No se pudo enviar el mensaje" };
   }
+}
+
+export type GroupTransportUnitInput = {
+  unitNumber: number;
+  direction: "ida" | "regreso";
+  provider: "chofer" | "uber";
+  employeeIds: string[];
+};
+
+async function groupMutation<T = GroupServiceRequest>(
+  path: string,
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
+  body?: unknown,
+) {
+  try {
+    await requireJefe();
+    const data = await apiFetch<T>(path, {
+      method,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    return { success: true as const, data };
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    return {
+      success: false as const,
+      error:
+        error instanceof Error
+          ? error.message
+          : "No se pudo procesar el servicio grupal",
+    };
+  }
+}
+
+export async function getGroupServiceRequests() {
+  await requireJefe();
+  return apiFetch<GroupServiceRequest[]>("/group-services/requests");
+}
+
+export async function getGroupCandidates() {
+  await requireJefe();
+  return apiFetch<Employee[]>("/group-services/candidates");
+}
+
+export async function getGroupRequestMessages(requestId: string) {
+  await requireJefe();
+  return apiFetch<ConversationMessage[]>(
+    `/group-services/requests/${requestId}/messages`,
+  );
+}
+
+export async function sendGroupRequestMessage(
+  requestId: string,
+  message: string,
+) {
+  return groupMutation<ConversationMessage>(
+    `/group-services/requests/${requestId}/messages`,
+    "POST",
+    { message },
+  );
+}
+
+export async function updateGroupRequest(
+  requestId: string,
+  data: {
+    durationHours?: number;
+    paymentMethod?: "efectivo" | "tarjeta" | "transferencia" | "mixto";
+    locationLat?: number;
+    locationLng?: number;
+    locationReference?: string;
+  },
+) {
+  return groupMutation(`/group-services/requests/${requestId}`, "PATCH", data);
+}
+
+export async function requestGroupLocation(requestId: string) {
+  return groupMutation<{ sent: boolean }>(
+    `/group-services/requests/${requestId}/request-location`,
+    "POST",
+  );
+}
+
+export async function sendGroupCatalog(requestId: string) {
+  return groupMutation(
+    `/group-services/requests/${requestId}/catalog`,
+    "POST",
+  );
+}
+
+export async function reserveGroupEmployees(
+  requestId: string,
+  employeeIds: string[],
+) {
+  return groupMutation(
+    `/group-services/requests/${requestId}/selections`,
+    "PUT",
+    { employeeIds, selectedBy: "jefe" },
+  );
+}
+
+export async function extendGroupHold(requestId: string) {
+  return groupMutation(
+    `/group-services/requests/${requestId}/extend-hold`,
+    "POST",
+  );
+}
+
+export async function confirmGroupQuote(
+  requestId: string,
+  responsibleEmployeeId: string,
+  transportUnits: GroupTransportUnitInput[],
+) {
+  return groupMutation<Service>(
+    `/group-services/requests/${requestId}/confirm-quote`,
+    "POST",
+    { responsibleEmployeeId, transportUnits },
+  );
+}
+
+export async function cancelGroupRequest(requestId: string) {
+  return groupMutation<{ cancelled: boolean }>(
+    `/group-services/requests/${requestId}`,
+    "DELETE",
+  );
+}
+
+export async function startGroupService(serviceId: string) {
+  return groupMutation<Service>(
+    `/group-services/services/${serviceId}/start`,
+    "POST",
+  );
+}
+
+export async function addGroupParticipant(
+  serviceId: string,
+  employeeId: string,
+  needsNewTransport: boolean,
+  transportProvider: "chofer" | "uber",
+) {
+  return groupMutation<Service>(
+    `/group-services/services/${serviceId}/participants`,
+    "POST",
+    { employeeId, needsNewTransport, transportProvider },
+  );
+}
+
+export async function removeGroupParticipant(
+  serviceId: string,
+  employeeId: string,
+  reason: string,
+  manualTransportCharge?: number,
+) {
+  return groupMutation<Service>(
+    `/group-services/services/${serviceId}/participants/${employeeId}`,
+    "DELETE",
+    { reason, manualTransportCharge },
+  );
+}
+
+export async function changeGroupResponsible(
+  serviceId: string,
+  employeeId: string,
+) {
+  return groupMutation<Service>(
+    `/group-services/services/${serviceId}/responsible`,
+    "PUT",
+    { employeeId },
+  );
+}
+
+export async function changeGroupDuration(
+  serviceId: string,
+  durationHours: number,
+) {
+  return groupMutation<Service>(
+    `/group-services/services/${serviceId}/duration`,
+    "PATCH",
+    { durationHours },
+  );
+}
+
+export async function configureGroupTransports(
+  serviceId: string,
+  transportUnits: GroupTransportUnitInput[],
+) {
+  return groupMutation<Service>(
+    `/group-services/services/${serviceId}/transports`,
+    "PUT",
+    { transportUnits },
+  );
+}
+
+export async function addGroupManualTransportCharge(
+  serviceId: string,
+  amount: number,
+  reason: string,
+) {
+  return groupMutation<Service>(
+    `/group-services/services/${serviceId}/manual-transport-charge`,
+    "POST",
+    { amount, reason },
+  );
 }
